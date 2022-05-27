@@ -1,6 +1,10 @@
-# Benchmarks for verifying Persistent Memory programs
+# Persistent Memory Benchmarks for verification
 
 This repository contains various benchmarks for Persistent Memory. For the verification process we are using an extension of PerSeVerE [1] (a tool based on [GenMC](https://github.com/MPI-SWS/genmc) [2]), which supports the Px86 memory persistency model [3].
+
+# Installation
+
+# Run
 
 # Resources
 
