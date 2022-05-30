@@ -44,8 +44,8 @@ void *thread2(void *param)
 void __VERIFIER_recovery_routine(void)
 {
 
-  assert(!(z.load(relaxed) == 1 && w.load(relaxed) == 1 &&
-           x.load(relaxed) == 0 && y.load(relaxed) == 0));
+  if (z.load(relaxed) == 1 && w.load(relaxed) == 1)
+    assert(!(x.load(relaxed) == 0 && y.load(relaxed) == 0));
 
   return;
 
