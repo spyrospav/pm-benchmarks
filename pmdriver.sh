@@ -32,22 +32,36 @@ POWDER_BLUE=`tput setaf 153`
 NC=`tput sgr0`
 
 printline() {
+
   for _ in {0..60}; do echo -n '-'; done; echo''
+
 }
 
 print_header() {
+
   echo
   printline
   echo "${header}"
   printline
   echo
   printline
-  printf "| ${CYAN}%-14s${NC} | ${CYAN}%-6s${NC} | ${CYAN}%-10s${NC} | ${CYAN}%-7s${NC} | ${CYAN}%-8s${NC} |\n" \
+  printf "| ${CYAN}%-14s${NC} | ${CYAN}%-6s${NC} | ${CYAN}%-10s${NC} | ${CYAN}%-7s${NC} | ${CYAN}% 8s${NC} |\n" \
   	   "Testcase" "Result" "Executions" "Blocked" "Time"
   printline
+
 }
 
 print_single_result() {
+
+  if test "$?" -ne 0
+  then
+    rescolour=$RED
+    res="no"
+  else
+    rescolour=$GREEN
+    res="yes"
+  fi
+
   explored=`echo "${output}" | awk '/explored/ { print $6 }'`
 	blocked=`echo "${output}" | awk '/blocked/ { print $6 }'`
 	time=`echo "${output}" | awk '/time/ { print substr($4, 1, length($4)-1) }'`
@@ -55,9 +69,12 @@ print_single_result() {
 
   printf "| ${POWDER_BLUE}%-14s${NC} | ${rescolour}% 6s${NC} | % 10s | % 7s | %8s |\n" \
 	   "${test}" "${res}" "${explored}" "${blocked}" "${time}s"
+
 }
 
+#
 # Run litmus tests
+#
 
 header="*                    Running litmus tests                   *"
 print_header
@@ -68,25 +85,26 @@ do
   test=$(basename ${lit} .cpp)
 
   output=`${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${LITMUS}/${test}.cpp 2>&1`
-  if test "$?" -ne 0
-  then
-    rescolour=$RED
-    res="no"
-  else
-    rescolour=$GREEN
-    res="yes"
-  fi
 
   print_single_result
-
-  ${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${LITMUS}/${test}.cpp >\
-   ${OUT}/${test}.out
-
+  ${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${LITMUS}/${test}.cpp > \
+    ${OUT}/${test}.out
 done
 printline
 
+#
+# Run NVTraverse tests
+#
+
+header="*                  Running NVTraverse tests                 *"
+print_header
+
 for ds in List Skiplist
 do
+
+  test=${ds}
+
+  output=`${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${NVTRAVERSE}/${ds}/run${ds}.cpp 2>&1`
 
   ${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${NVTRAVERSE}/${ds}/run${ds}.cpp >\
    ${OUT}/pm${ds}.out
