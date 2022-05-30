@@ -48,8 +48,8 @@ print_header() {
   printline
   echo
   printline
-  printf "| ${CYAN}%-14s${NC} | ${CYAN}%-6s${NC} | ${CYAN}%-6s${NC} | ${CYAN}%-10s${NC} | ${CYAN}%-7s${NC} | ${CYAN}% 8s${NC} |\n" \
-  	   "Testcase" "Result" "Status" "Executions" "Blocked" "Time"
+  printf "| ${CYAN}%-12s${NC} | ${CYAN}%-8s${NC} | ${CYAN}%-6s${NC} | ${CYAN}%-10s${NC} | ${CYAN}%-7s${NC} | ${CYAN}% 8s${NC} |\n" \
+  	   "Testcase" "Expected" "Status" "Executions" "Blocked" "Time"
   printline
 
 }
@@ -88,7 +88,7 @@ print_single_result() {
   time=`echo "${output}" | awk '/time/ { print substr($4, 1, length($4)-1) }'`
   time="${time}" && [[ -z "${time}" ]] && time=0 # if pattern was NOT found
 
-  printf "| ${POWDER_BLUE}%-14s${NC} | % 6s | ${rescolour}% 6s${NC} | % 10s | % 7s | %8s |\n" \
+  printf "| ${POWDER_BLUE}%-12s${NC} | % 8s | ${rescolour}% 6s${NC} | % 10s | % 7s | %8s |\n" \
      "${test}" "${expected_results[${test}]}" "${res}" "${explored}" "${blocked}" "${time}s"
 
 }
