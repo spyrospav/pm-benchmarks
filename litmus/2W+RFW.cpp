@@ -13,7 +13,7 @@ static int param[2] = {0, 1};
 __VERIFIER_persistent_storage(std::atomic_int x);
 __VERIFIER_persistent_storage(std::atomic_int y);
 __VERIFIER_persistent_storage(std::atomic_int z);
-__VERIFIER_persistent_storage(std::atomic_int w);
+int a = 0;
 
 extern "C"{
  void __VERIFIER_clflush(void*);
@@ -23,9 +23,9 @@ extern "C"{
 void *thread1(void *param)
 {
 
-  x.store(1, relaxed);
-  __VERIFIER_clflush(&y);
-  z.store(1, relaxed);
+  x.store(42, relaxed);
+  y.store(7, relaxed);
+
   return NULL;
 
 }
@@ -33,9 +33,11 @@ void *thread1(void *param)
 void *thread2(void *param)
 {
 
-  y.store(1, relaxed);
-  __VERIFIER_clflush(&x);
-  w.store(1, relaxed);
+  a = y.load();
+  if (a != 0) {
+    __VERIFIER_clflush(&x);
+    z.store(1, relaxed);
+  }
 
   return NULL;
 
@@ -44,8 +46,8 @@ void *thread2(void *param)
 void __VERIFIER_recovery_routine(void)
 {
 
-  if (z.load(relaxed) == 1 && w.load(relaxed) == 1)
-    assert(!(x.load(relaxed) == 0 && y.load(relaxed) == 0));
+  if (z.load(relaxed) == 1)
+    assert(x.load(relaxed) == 42);
 
   return;
 
@@ -57,7 +59,6 @@ int main()
   x.store(0, relaxed);
   y.store(0, relaxed);
   z.store(0, relaxed);
-  w.store(0, relaxed);
 
   __VERIFIER_pbarrier();
 
