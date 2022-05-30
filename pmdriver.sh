@@ -20,6 +20,9 @@
 
 GenMC=/home/spyros/Desktop/thesis/genmc-tool/src/genmc
 PMBENCHMARKS=$(pwd)
+
+source "${PMBENCHMARKS}/catalog.sh"
+
 OUT=${PMBENCHMARKS}/out
 
 LITMUS=${PMBENCHMARKS}/litmus
@@ -33,7 +36,7 @@ NC=`tput sgr0`
 
 printline() {
 
-  for _ in {0..60}; do echo -n '-'; done; echo''
+  for _ in {0..69}; do echo -n '-'; done; echo''
 
 }
 
@@ -45,8 +48,8 @@ print_header() {
   printline
   echo
   printline
-  printf "| ${CYAN}%-14s${NC} | ${CYAN}%-6s${NC} | ${CYAN}%-10s${NC} | ${CYAN}%-7s${NC} | ${CYAN}% 8s${NC} |\n" \
-  	   "Testcase" "Result" "Executions" "Blocked" "Time"
+  printf "| ${CYAN}%-14s${NC} | ${CYAN}%-6s${NC} | ${CYAN}%-6s${NC} | ${CYAN}%-10s${NC} | ${CYAN}%-7s${NC} | ${CYAN}% 8s${NC} |\n" \
+  	   "Testcase" "Result" "Status" "Executions" "Blocked" "Time"
   printline
 
 }
@@ -55,20 +58,38 @@ print_single_result() {
 
   if test "$?" -ne 0
   then
-    rescolour=$RED
-    res="no"
+    if [ "${expected_results[${test}]}" == "unsafe" ]
+    then
+      result=1
+
+    else
+      result=0
+    fi
   else
+    if [ "${expected_results[${test}]}" == "safe" ]
+    then
+      result=1
+    else
+      result=0
+    fi
+  fi
+
+  if [ ${result} == 1 ]
+  then
     rescolour=$GREEN
-    res="yes"
+    res="pass"
+  else
+    rescolour=$RED
+    res="fail"
   fi
 
   explored=`echo "${output}" | awk '/explored/ { print $6 }'`
-	blocked=`echo "${output}" | awk '/blocked/ { print $6 }'`
-	time=`echo "${output}" | awk '/time/ { print substr($4, 1, length($4)-1) }'`
-	time="${time}" && [[ -z "${time}" ]] && time=0 # if pattern was NOT found
+  blocked=`echo "${output}" | awk '/blocked/ { print $6 }'`
+  time=`echo "${output}" | awk '/time/ { print substr($4, 1, length($4)-1) }'`
+  time="${time}" && [[ -z "${time}" ]] && time=0 # if pattern was NOT found
 
-  printf "| ${POWDER_BLUE}%-14s${NC} | ${rescolour}% 6s${NC} | % 10s | % 7s | %8s |\n" \
-	   "${test}" "${res}" "${explored}" "${blocked}" "${time}s"
+  printf "| ${POWDER_BLUE}%-14s${NC} | % 6s | ${rescolour}% 6s${NC} | % 10s | % 7s | %8s |\n" \
+     "${test}" "${expected_results[${test}]}" "${res}" "${explored}" "${blocked}" "${time}s"
 
 }
 
@@ -76,10 +97,10 @@ print_single_result() {
 # Run litmus tests
 #
 
-header="*                    Running litmus tests                   *"
+header="*                        Running litmus tests                        *"
 print_header
 
-for lit in ${LITMUS}/*
+for lit in ${LITMUS}/*.cpp
 do
 
   test=$(basename ${lit} .cpp)
@@ -96,7 +117,7 @@ printline
 # Run NVTraverse tests
 #
 
-header="*                  Running NVTraverse tests                 *"
+header="*                      Running NVTraverse tests                      *"
 print_header
 
 for ds in List Skiplist
