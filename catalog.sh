@@ -6,4 +6,6 @@ expected_results=(
   ["WFW"]="safe"
   ["WFW+RW"]="safe"
   ["WW"]="unsafe"
+  ["2W+RFW"]="safe"
+  ["CAS+CAS"]="safe"
 )
