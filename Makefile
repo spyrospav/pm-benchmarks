@@ -1,4 +1,4 @@
 .PHONY: clean default
 
 clean:
-	rm -f out/*
+	rm -rf out/*

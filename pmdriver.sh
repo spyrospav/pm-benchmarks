@@ -33,6 +33,15 @@ NC=`tput sgr0`
 mkdir -p ${PMBENCHMARKS}/out
 OUT=${PMBENCHMARKS}/out
 
+debug_mode=1
+
+if [ ${debug_mode} == 1 ]
+then
+  echo "DEBUG MODE ON"
+  mkdir -p ${OUT}/graphs
+  GRAPHS=${OUT}/graphs
+fi
+
 source "${PMBENCHMARKS}/catalog.sh"
 
 printline() {
@@ -59,14 +68,14 @@ print_single_result() {
 
   if test "$?" -ne 0
   then
-    if [ "${expected_results[${test}]}" == "unsafe" ]
+    if [ "${expected}" == "unsafe" ]
     then
       result=1
     else
       result=0
     fi
   else
-    if [ "${expected_results[${test}]}" == "safe" ]
+    if [ "${expected}" == "safe" ]
     then
       result=1
     else
@@ -89,7 +98,40 @@ print_single_result() {
   time="${time}" && [[ -z "${time}" ]] && time=0 # if pattern was NOT found
 
   printf "| ${POWDER_BLUE}%-12s${NC} | % 8s | ${rescolour}% 6s${NC} | % 10s | % 7s | %8s |\n" \
-     "${test}" "${expected_results[${test}]}" "${res}" "${explored}" "${blocked}" "${time}s"
+     "${testname}" "${expected}" "${res}" "${explored}" "${blocked}" "${time}s"
+
+}
+
+run_single_test() {
+
+  testname=$(basename ${test} .cpp)
+  expected="${expected_results[${testname}]}"
+
+  if test -n "${debug_mode}"
+  then
+
+    output=`${GenMC} -disable-race-detection --tso --persevere \
+      --dump-error-graph=${GRAPHS}/${testname}.dot -- -DPWB_IS_CLFLUSH ${test} 2>&1`
+
+    print_single_result
+
+    if [[ "${expected}" == "unsafe" && "${res}" == "pass" ]];
+    then
+
+      dot -Tps ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.ps
+      # convert ${GRAPHS}/${testname}.ps -density 250 ${GRAPHS}/${testname}.jpg
+
+    fi
+
+  else
+
+    output=`${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${test} 2>&1`
+
+    print_single_result
+
+  fi
+
+  echo "${output}" &> ${OUT}/${testname}.out
 
 }
 
@@ -100,15 +142,10 @@ print_single_result() {
 header="*                        Running litmus tests                        *"
 print_header
 
-for lit in ${LITMUS}/*.cpp
+for test in ${LITMUS}/*.cpp
 do
 
-  test=$(basename ${lit} .cpp)
-
-  output=`${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${LITMUS}/${test}.cpp 2>&1`
-
-  print_single_result
-  echo "${output}" &> ${OUT}/${test}.out
+  run_single_test
 
 done
 printline
@@ -122,15 +159,10 @@ print_header
 
 for ds in List #Skiplist
 do
-  for t in ${NVTRAVERSE}/${ds}/*.cpp
+  for test in ${NVTRAVERSE}/${ds}/*.cpp
   do
 
-    test=$(basename ${t} .cpp)
-
-    output=`${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${NVTRAVERSE}/${ds}/${test}.cpp 2>&1`
-
-    print_single_result
-    echo "${output}" &> ${OUT}/${test}.out
+    run_single_test
 
   done
 done
