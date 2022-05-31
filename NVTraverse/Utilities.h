@@ -18,7 +18,6 @@
 #define INT_MAX 2147483000
 
 #define CAS __sync_bool_compare_and_swap
-#define MFENCE __sync_synchronize
 
 extern "C"{
  void __VERIFIER_clflush(void*);
@@ -46,6 +45,11 @@ inline void FLUSH(volatile void *p)
 #else
 #error "You must define what PWB is. Choose PWB_IS_CLFLUSH if you don't know what your CPU is capable of"
 #endif
+}
+
+inline void MFENCE()
+{
+  std::atomic_thread_fence(std::memory_order_seq_cst);
 }
 
 inline void SFENCE()
