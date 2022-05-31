@@ -21,10 +21,6 @@
 GenMC=/home/spyros/Desktop/thesis/genmc-tool/src/genmc
 PMBENCHMARKS=$(pwd)
 
-source "${PMBENCHMARKS}/catalog.sh"
-
-OUT=${PMBENCHMARKS}/out
-
 LITMUS=${PMBENCHMARKS}/litmus
 NVTRAVERSE=${PMBENCHMARKS}/NVTraverse
 
@@ -33,6 +29,11 @@ GREEN=`tput setaf 2`
 CYAN=`tput setaf 6`
 POWDER_BLUE=`tput setaf 153`
 NC=`tput sgr0`
+
+mkdir -p ${PMBENCHMARKS}/out
+OUT=${PMBENCHMARKS}/out
+
+source "${PMBENCHMARKS}/catalog.sh"
 
 printline() {
 
@@ -61,7 +62,6 @@ print_single_result() {
     if [ "${expected_results[${test}]}" == "unsafe" ]
     then
       result=1
-
     else
       result=0
     fi
@@ -108,8 +108,8 @@ do
   output=`${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${LITMUS}/${test}.cpp 2>&1`
 
   print_single_result
-  ${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${LITMUS}/${test}.cpp > \
-    ${OUT}/${test}.out
+  echo "${output}" &> ${OUT}/${test}.out
+
 done
 printline
 
@@ -120,14 +120,20 @@ printline
 header="*                      Running NVTraverse tests                      *"
 print_header
 
-for ds in List Skiplist
+for ds in List #Skiplist
 do
+  for t in ${NVTRAVERSE}/${ds}/*.cpp
+  do
 
-  test=${ds}
+    test=$(basename ${t} .cpp)
 
-  output=`${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${NVTRAVERSE}/${ds}/run${ds}.cpp 2>&1`
+    output=`${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${NVTRAVERSE}/${ds}/${test}.cpp 2>&1`
 
-  ${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${NVTRAVERSE}/${ds}/run${ds}.cpp >\
-   ${OUT}/pm${ds}.out
+    print_single_result
+    echo "${output}" &> ${OUT}/${test}.out
 
+  done
 done
+printline
+
+echo
