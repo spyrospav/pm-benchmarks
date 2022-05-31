@@ -12,7 +12,6 @@ static pthread_t threads[2];
 static int param[2] = {0, 1};
 
 __VERIFIER_persistent_storage(static ListOriginal* list);
-__VERIFIER_persistent_storage(bool res2);
 
 void *thread1(void *param)
 {
@@ -26,7 +25,7 @@ void *thread1(void *param)
 void *thread2(void *param)
 {
 
-  res2 = list->insert(2, 10);
+  list->insert(2, 10);
 
   return NULL;
 
