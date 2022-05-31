@@ -6,8 +6,8 @@ The implementations of the various data structures are taken from [NVTraverse re
 
 We are testing the following lock-free data structures:
 
-  - [Linked-List](/List)
-  - [Skiplist](/Skiplist)
+  - [Linked-List](/NVTraverse/List)
+  - [Skiplist](/NVTraverse/Skiplist)
 
 Each data structure has 3 implementations:
 
