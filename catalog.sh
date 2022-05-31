@@ -13,5 +13,7 @@ expected_results=(
   #NVTraverse
   ["List0"]="unsafe"
   ["List1"]="unsafe"
+  ["List2"]="unsafe"
+  ["List3"]="unsafe"
   #["runSkiplist"]="safe"
 )

@@ -12,6 +12,7 @@
 
 #include <stddef.h>
 #include <genmc.h>
+#include <atomic>
 
 #define INT_MIN -2147483000
 #define INT_MAX 2147483000
@@ -49,49 +50,19 @@ inline void FLUSH(volatile void *p)
 
 inline void SFENCE()
 {
-    asm volatile ("sfence" ::: "memory");
+  //asm volatile ("sfence" ::: "memory");
 }
 
 inline void FENCE()
 {
 
 #ifdef PWB_IS_CLFLUSH
-  //MFENCE();
+  MFENCE();
 #elif PWB_IS_CLFLUSHOPT
   SFENCE();
 #else
 #error "You must define what PWB is. Choose PWB_IS_CLFLUSH if you don't know what your CPU is capable of"
 #endif
-}
-
-int floor_log_2(unsigned int n)
-{
-  int pos = 0;
-  if (n >= 1 << 16)
-  {
-    n >>= 16;
-    pos += 16;
-  }
-  if (n >= 1 << 8)
-  {
-    n >>= 8;
-    pos += 8;
-  }
-  if (n >= 1 << 4)
-  {
-    n >>= 4;
-    pos += 4;
-  }
-  if (n >= 1 << 2)
-  {
-    n >>= 2;
-    pos += 2;
-  }
-  if (n >= 1 << 1)
-  {
-    pos += 1;
-  }
-  return ((n == 0) ? (-1) : pos);
 }
 
 void BARRIER(void* p){

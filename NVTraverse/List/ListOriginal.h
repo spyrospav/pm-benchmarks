@@ -101,8 +101,6 @@ public:
 
   ListOriginal() {
     allocateNodes();
-    MFENCE();
-    //head = new Node(INT_MIN, INT_MIN);
     head = getNewNode();
     head->key = INT_MIN;
     head->value = INT_MIN;
