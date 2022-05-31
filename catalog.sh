@@ -9,6 +9,7 @@ expected_results=(
   ["WW"]="unsafe"
   ["2W+RFW"]="safe"
   ["CAS+CAS"]="safe"
+<<<<<<< HEAD
 
   #NVTraverse
   ["List0"]="unsafe"
@@ -16,4 +17,7 @@ expected_results=(
   ["List2"]="unsafe"
   ["List3"]="unsafe"
   #["runSkiplist"]="safe"
+=======
+  ["WW+RMFW"]="safe"
+>>>>>>> master
 )
