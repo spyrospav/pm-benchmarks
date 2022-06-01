@@ -16,8 +16,10 @@ expected_results=(
   ["List1"]="unsafe"
   ["List2"]="unsafe"
   ["ListIz0"]="safe"
+  ["ListIz1"]="safe"
   ["ListIz2"]="safe"
   ["ListTr0"]="safe"
+  ["ListTr1"]="safe"
   ["ListTr2"]="safe"
   #["runSkiplist"]="safe"
 )

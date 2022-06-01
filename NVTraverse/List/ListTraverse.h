@@ -210,8 +210,6 @@ class ListTraverse {
     }
   }
 
-//=========================================
-
 	bool insert(int k, int item) {
     while (true) {
       Window* window = find(head, k/*, epoch*/);
@@ -232,9 +230,6 @@ class ListTraverse {
 			// ssmem_free(alloc, node)
     }
   }
-
-
-//========================================
 
 	bool remove(int key) {
 		bool snip = false;
@@ -264,8 +259,6 @@ class ListTraverse {
 			}
 		}
 	}
-
-    //========================================
 
 	bool contains(int key) {
     Node* pred = head;

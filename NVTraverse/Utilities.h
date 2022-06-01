@@ -39,8 +39,9 @@ inline void FLUSH(volatile void *p)
 {
 #ifdef PWB_IS_CLFLUSH
   __VERIFIER_clflush(&p);
-  //asm volatile ("clflush (%0)" :: "r"(p));
+  // asm volatile ("clflush (%0)" :: "r"(p));
 #elif PWB_IS_CLFLUSHOPT
+  // __VERIFIER_clflushopt(p);
   asm volatile(".byte 0x66; clflush %0" : "+m" (*(volatile char *)(p)));
 #else
 #error "You must define what PWB is. Choose PWB_IS_CLFLUSH if you don't know what your CPU is capable of"
@@ -49,13 +50,16 @@ inline void FLUSH(volatile void *p)
 
 inline void MFENCE()
 {
-  std::atomic_thread_fence(std::memory_order_seq_cst);
+  // Which of the following should we use?
+  // NOTE: __sync_synchronize() creates a full memory barrier a.k.a. mfence
+  // std::atomic_thread_fence(std::memory_order_seq_cst);
+  __sync_synchronize();
 }
 
 inline void SFENCE()
 {
-  //std::atomic_thread_fence(std::memory_order_seq_cst);
-  //asm volatile ("sfence" ::: "memory");
+  // std::atomic_thread_fence(std::memory_order_seq_cst);
+  // asm volatile ("sfence" ::: "memory");
 }
 
 inline void FENCE()
