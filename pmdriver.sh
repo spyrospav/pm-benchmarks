@@ -37,7 +37,8 @@ debug_mode=1
 
 if [ ${debug_mode} == 1 ]
 then
-  echo "DEBUG MODE ON"
+  echo
+  echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~DEBUG MODE ON~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
   mkdir -p ${OUT}/graphs
   GRAPHS=${OUT}/graphs
 fi
@@ -107,7 +108,7 @@ run_single_test() {
   testname=$(basename ${test} .cpp)
   expected="${expected_results[${testname}]}"
 
-  if test -n "${debug_mode}"
+  if [ ${debug_mode} == 1 ]
   then
 
     output=`${GenMC} -disable-race-detection --tso --persevere \
@@ -119,7 +120,6 @@ run_single_test() {
     then
 
       dot -Tps ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.ps
-      # convert ${GRAPHS}/${testname}.ps -density 250 ${GRAPHS}/${testname}.jpg
 
     fi
 

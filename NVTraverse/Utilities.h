@@ -54,6 +54,7 @@ inline void MFENCE()
 
 inline void SFENCE()
 {
+  //std::atomic_thread_fence(std::memory_order_seq_cst);
   //asm volatile ("sfence" ::: "memory");
 }
 

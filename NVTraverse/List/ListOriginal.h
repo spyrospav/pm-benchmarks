@@ -8,16 +8,16 @@
 
 #define MAXNODES 10
 
-void* operator new(std::size_t sz)
-{
-
-  if (sz == 0)
-      ++sz;
-
-  void *ptr = __VERIFIER_palloc(sz);
-  return ptr;
-
-}
+// void* operator new(std::size_t sz)
+// {
+//
+//   if (sz == 0)
+//       ++sz;
+//
+//   void *ptr = __VERIFIER_palloc(sz);
+//   return ptr;
+//
+// }
 
 class Node{
 public:
@@ -65,25 +65,34 @@ public:
 
 };
 
+/*
+ * All variables that are read during recovery should have been declared
+ * as persistent. The function allocate node is triggered during the
+ * initialization of the List and dynamically allocates these nodes with
+ * palloc. Whenever a new node is needed, the function getNewNode() is
+ * called in order to return a pointer to one of the preallocated nodes.
+ * NOTE: Does fetch_add() affect the ordering?
+ */
 __VERIFIER_persistent_storage(Node * nodes[MAXNODES]);
 
-static int node_idx = 0;
+static std::atomic_int node_idx;
 
 void allocateNodes()
 {
 
+  node_idx.store(0);
   for (int i = 0; i < MAXNODES; i++) {
     nodes[i] = (Node *)__VERIFIER_palloc(sizeof(Node));
-
     nodes[i]->key = INT_MIN;
     nodes[i]->value = int();
     nodes[i]->next = NULL;
   }
 
 }
+
 Node* getNewNode()
 {
-  return nodes[node_idx++];
+  return nodes[node_idx.fetch_add(1)];
 }
 
 class ListOriginal{
@@ -167,11 +176,7 @@ public:
           continue;
         }
         else {
-          /* Here */
-    	    //Window* w = static_cast<Window*>(ssmem_alloc(allocW, sizeof(Window)));
           Window* w = new Window(left, right);
-    	    //w->pred = left;
-    	    //w->curr = right;
     	    return w;
         }
       }
@@ -189,11 +194,7 @@ public:
 		      continue;
         }
         else {
-          /* Here */
-          //Window* w = static_cast<Window*>(ssmem_alloc(allocW, sizeof(Window)));
           Window* w = new Window(left, right);
-          //w->pred = left;
-          //w->curr = right;
           return w;
         }
       }
@@ -205,14 +206,11 @@ public:
       Window* window = find(head, k);
       Node* pred = window->pred;
       Node* curr = window->curr;
-      /* Here */
       // We don't care about GC for now
       //ssmem_free(allocW, window);
       if (curr && curr->key == k) {
         return false;
       }
-      /* Here */
-      //Node* node = static_cast<Node*>(ssmem_alloc(alloc, sizeof(Node)));
       //Node* node = new Node();
       Node* node = getNewNode();
 	    node->key = k;
