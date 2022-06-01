@@ -60,13 +60,6 @@ public:
 		return ret;
 	}
 
-	bool CAS_next(Node* exp, Node* n) {
-		Node* old = next;
-		if(exp != old) return false;
-		bool ret = CAS(&next, old, n);
-		return ret;
-	}
-
 };
 
 /*
@@ -77,7 +70,7 @@ public:
  * called in order to return a pointer to one of the preallocated nodes.
  * NOTE: Does fetch_add() affect the ordering?
  */
-__VERIFIER_persistent_storage(Node * nodes[MAXNODES]);
+__VERIFIER_persistent_storage(Node* nodes[MAXNODES]);
 
 static std::atomic_int node_idx;
 
@@ -133,11 +126,13 @@ class ListTraverse {
     return (Node*)node;
   }
 
-	Window* find(Node* head, int key/*, EpochThread epoch*/) {
+	Window* find(Node* head, int key) {
     Node* leftParent = head;
     Node* left = head;
     Node* leftNext = head->getNext();
     Node* right = NULL;
+
+    Node* traverseNodes[MAXNODES];
 
     Node* pred = NULL;
     Node* curr = NULL;
@@ -159,9 +154,9 @@ class ListTraverse {
           left = currAdd;
           leftNext = succ;
           numNodes = 0;
-          //nodes[numNodes++] = leftNext;
+          //traverseNodes[numNodes++] = leftNext;
         }
-        //nodes[numNodes++] = currAdd;
+        traverseNodes[numNodes++] = currAdd;
         pred = currAdd;
         curr = succ;
         currAdd = getAdd(curr);
@@ -172,33 +167,34 @@ class ListTraverse {
         marked = getMark(succ);
     	}
       right = currAdd;
-      //nodes[numNodes++] = right;
-        /* 2: Check nodes are adjacent */
+      traverseNodes[numNodes++] = right;
+      /* 2: Check nodes are adjacent */
       if (leftNext == right) {
         if ((right != NULL) && getMark(right->getNext())) {
             continue;
         }
 				else {
-          // nodes[numNodes++] = leftParent;
-          // for (int i = 0; i < numNodes; i++) {
-          //     if (nodes[i]) FLUSH(nodes[i]);
-          // }
+          traverseNodes[numNodes++] = leftParent;
+          for (int i = 0; i < numNodes; i++) {
+              if (traverseNodes[i]) FLUSH(traverseNodes[i]);
+          }
 					Window* w = new Window(left, right);
           return w;
         }
       }
-      // nodes[numNodes++] = leftParent;
-      // for (int i = 0; i < numNodes; i++) {
-      //   if (nodes[i]) {
-      //     FLUSH(nodes[i]);
-      //   }
-      // }
+      traverseNodes[numNodes++] = leftParent;
+      for (int i = 0; i < numNodes; i++) {
+        if (traverseNodes[i]) {
+          FLUSH(traverseNodes[i]);
+        }
+      }
       /* 3: Remove one or more marked nodes */
       if (left->CAS_nextF(leftNext, right)) {
-        // for (int i = 1; i <= numNodes-3; i++) {
-        //   if (nodes[i]) {
-        //     ssmem_free(alloc, nodes[i]);}
-        // }
+        for (int i = 1; i <= numNodes-3; i++) {
+          if (traverseNodes[i]) {
+            free(traverseNodes[i]);
+          }
+        }
         if ((right != NULL) && getMark(right->getNextF())) {
           continue;
         }
@@ -212,7 +208,7 @@ class ListTraverse {
 
 	bool insert(int k, int item) {
     while (true) {
-      Window* window = find(head, k/*, epoch*/);
+      Window* window = find(head, k);
       Node* pred = window->pred;
       Node* curr = window->curr;
       if (curr && curr->key == k) {
@@ -227,17 +223,17 @@ class ListTraverse {
         SFENCE();
         return true;
       }
-			// ssmem_free(alloc, node)
+      free(node);
     }
   }
 
 	bool remove(int key) {
 		bool snip = false;
 		while (true) {
-			Window* window = find(head, key/*, epoch*/);
+			Window* window = find(head, key);
 			Node* pred = window->pred;
 			Node* curr = window->curr;
-			//ssmem_free(allocW, window);
+			free(window);
 			if (!curr || curr->key != key) {
 	      SFENCE();
 				return false;
@@ -251,9 +247,9 @@ class ListTraverse {
         snip = curr->CAS_nextF(succ, succAndMark);
 				if (!snip)
 					continue;
-        // if (pred->CAS_nextF(curr, succ)){
-        //   ssmem_free(alloc, curr);
-				// }
+        if (pred->CAS_nextF(curr, succ)){
+          free(curr);
+  			}
 	      SFENCE();
 		    return true;
 			}
@@ -276,6 +272,7 @@ class ListTraverse {
     }
     FLUSH(pred);
     FLUSH(curr);
+    // Possibly SFENCE() should be moved here!
     if(curr->key == key && !marked){
       SFENCE();
     	return true;

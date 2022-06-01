@@ -51,7 +51,7 @@ int main() {
   list->insert(3,10);
 
   res2 = false;
-  
+
   __VERIFIER_pbarrier();
 
   pthread_create(&threads[0], NULL, thread1, &param[0]);

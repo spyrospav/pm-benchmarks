@@ -135,7 +135,6 @@ public:
       currAdd = curr;
       succ = currAdd->getNext();
       marked = getMark(succ);
-
       /* 1: Find left and right */
       while (marked || currAdd->key < key) {
         if (!marked) {

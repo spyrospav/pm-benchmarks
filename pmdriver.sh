@@ -69,22 +69,12 @@ print_single_result() {
 
   if test "$?" -ne 0
   then
-    if [ "${expected}" == "unsafe" ]
-    then
-      result=1
-    else
-      result=0
-    fi
+    actual_res="unsafe"
   else
-    if [ "${expected}" == "safe" ]
-    then
-      result=1
-    else
-      result=0
-    fi
+    actual_res="safe"
   fi
 
-  if [ ${result} == 1 ]
+  if [ "${actual_res}" == "${expected}" ]
   then
     rescolour=$GREEN
     res="pass"
@@ -116,10 +106,12 @@ run_single_test() {
 
     print_single_result
 
-    if [[ "${expected}" == "unsafe" && "${res}" == "pass" ]];
+    if [[ "${actual_res}" == "unsafe" ]];
     then
 
-      dot -Tps ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.ps
+      if test -f "${GRAPHS}/${testname}.dot"; then
+        dot -Tps ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.ps
+      fi
 
     fi
 

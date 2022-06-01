@@ -21,5 +21,5 @@ expected_results=(
   ["ListTr0"]="safe"
   ["ListTr1"]="safe"
   ["ListTr2"]="safe"
-  #["runSkiplist"]="safe"
+  ["Skiplist0"]="unsafe"
 )
