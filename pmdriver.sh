@@ -106,13 +106,8 @@ run_single_test() {
 
     print_single_result
 
-    if [[ "${actual_res}" == "unsafe" ]];
-    then
-
-      if test -f "${GRAPHS}/${testname}.dot"; then
-        dot -Tps ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.ps
-      fi
-
+    if test -f "${GRAPHS}/${testname}.dot"; then
+      dot -Tps ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.ps
     fi
 
   else
@@ -149,7 +144,7 @@ printline
 header="*                      Running NVTraverse tests                      *"
 print_header
 
-for ds in List #Skiplist
+for ds in List Skiplist
 do
   for test in ${NVTRAVERSE}/${ds}/*.cpp
   do

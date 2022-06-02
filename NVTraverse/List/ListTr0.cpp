@@ -13,24 +13,6 @@ static int param[2] = {0, 1};
 
 __VERIFIER_persistent_storage(static ListTraverse* list);
 
-void *thread1(void *param)
-{
-
-  list->insert(1, 10);
-
-  return NULL;
-
-}
-
-void *thread2(void *param)
-{
-
-  list->insert(2, 10);
-
-  return NULL;
-
-}
-
 void __VERIFIER_recovery_routine(void)
 {
 

@@ -73,9 +73,7 @@ void allocateNodes()
   node_idx.store(0);
   for (int i = 0; i < MAXNODES; i++) {
     nodes[i] = (Node *)__VERIFIER_palloc(sizeof(Node));
-    nodes[i]->key = INT_MIN;
-    nodes[i]->value = int();
-    nodes[i]->next = NULL;
+    new (nodes[i]) Node();
   }
 
 }

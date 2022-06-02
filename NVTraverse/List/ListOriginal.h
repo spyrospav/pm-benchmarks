@@ -1,5 +1,5 @@
-#ifndef LIST_ORIGINALS_H_
-#define LIST_ORIGINALS_H_
+#ifndef LIST_ORIGINAL_H_
+#define LIST_ORIGINAL_H_
 
 #include "../Utilities.h"
 #include <assert.h>
@@ -8,43 +8,18 @@
 
 #define MAXNODES 10
 
-// void* operator new(std::size_t sz)
-// {
-//
-//   if (sz == 0)
-//       ++sz;
-//
-//   void *ptr = __VERIFIER_palloc(sz);
-//   return ptr;
-//
-// }
-
 class Node{
 public:
   int key;
   int value;
-  Node* volatile next;
+  Node* next;
 
-  Node(int k, int val) {
-    key = k;
-    value = val;
-    next = NULL;
-  }
+  Node(int k, int val, Node* n) : key(k), value(val), next(n) {}
+
   Node() {
     key = INT_MIN;
     value = int();
     next = NULL;
-  }
-
-  Node(int k, int val, Node* n) {
-    key = k;
-    value = val;
-    next = n;
-  }
-
-  Node* getNextF() {
-    Node* n = next;
-    return n;
   }
 
   Node* getNext() {
@@ -83,16 +58,14 @@ void allocateNodes()
   node_idx.store(0);
   for (int i = 0; i < MAXNODES; i++) {
     nodes[i] = (Node *)__VERIFIER_palloc(sizeof(Node));
-    nodes[i]->key = INT_MIN;
-    nodes[i]->value = int();
-    nodes[i]->next = NULL;
+    new (nodes[i]) Node();
   }
 
 }
 
 Node* getNewNode()
 {
-  return nodes[node_idx.fetch_add(1)];
+  return nodes[node_idx++];
 }
 
 class ListOriginal{
@@ -142,20 +115,19 @@ public:
     Node* currAdd = NULL;
     Node* succ = NULL;
     bool marked = false;
-    int numNodes = 0;
+    // int numNodes = 0;
     while (true) {
-		  numNodes = 0;
+      // numNodes = 0;
       curr = head;
       currAdd = curr;
       succ = currAdd->getNext();
       marked = getMark(succ);
-
       /* 1: Find left and right */
       while (marked || currAdd->key < key) {
         if (!marked) {
           left = currAdd;
           leftNext = succ;
-        	numNodes = 0;
+          // numNodes = 0;
         }
         /* Here */
         // nodes[numNodes++] = currAdd;
@@ -177,21 +149,21 @@ public:
         }
         else {
           Window* w = new Window(left, right);
-    	    return w;
+          return w;
         }
       }
 
       /* 3: Remove one or more marked nodes */
       if (left->CAS_next(leftNext, right)) {
-        for (int i = 1; i < numNodes; i++) {
+        // for (int i = 1; i < numNodes; i++) {
           /* Here */
           // if (nodes[i]) {
           //   // We don't care about GC for now
-			    //   //ssmem_free(alloc, nodes[i]);
+          //   //ssmem_free(alloc, nodes[i]);
           // }
-        }
-		    if ((right != NULL) && getMark(right->getNext())) {
-		      continue;
+        // }
+        if ((right != NULL) && getMark(right->getNext())) {
+          continue;
         }
         else {
           Window* w = new Window(left, right);
@@ -207,13 +179,12 @@ public:
       Node* pred = window->pred;
       Node* curr = window->curr;
       // We don't care about GC for now
-      //ssmem_free(allocW, window);
+      free(window);
       if (curr && curr->key == k) {
         return false;
       }
-      //Node* node = new Node();
       Node* node = getNewNode();
-	    node->key = k;
+      node->key = k;
       node->value = item;
       node->next = curr;
       bool res = pred->CAS_nextF(curr, node);
@@ -222,7 +193,7 @@ public:
       }
       else {
         // We don't care about GC for now
-        //ssmem_free(alloc, node);
+        // free(node);
         continue;
       }
     }
@@ -235,7 +206,7 @@ public:
       Node* pred = window->pred;
       Node* curr = window->curr;
       // We don't care about GC for now
-      //ssmem_free(allocW, window);
+      free(window);
       if (!curr || curr->key != key) {
         return false;
       }
@@ -243,16 +214,16 @@ public:
         Node* succ = curr->next;
         Node* succAndMark = mark(succ);
         if (succ == succAndMark) {
-	        continue;
+          continue;
         }
-	      snip = curr->CAS_next(succ, succAndMark);
+        snip = curr->CAS_next(succ, succAndMark);
         if (!snip) {
-	        continue;
-	      }
-	      if(pred->CAS_next(curr, succ)){
+          continue;
+        }
+        if(pred->CAS_next(curr, succ)){
           // We don't care about GC for now
-          //ssmem_free(alloc, curr);
-	      }
+          // free(curr);
+        }
         return true;
       }
     }
@@ -279,6 +250,27 @@ public:
 
   }
 
+  long long size() {
+    long long s = 0;
+    Node* n = getAdd(head->getNext());
+    while(n != nullptr) {
+      bool marked = getMark(n->getNext());
+      if(!marked) s++;
+      n = getAdd(n->getNext());
+    }
+    return s;
+  }
+
+  long long keySum() {
+    long long s = 0;
+    Node* n = getAdd(head->getNext());
+    while(n != nullptr) {
+      bool marked = getMark(n->getNext());
+      if(!marked) s+=n->key;
+      n = getAdd(n->getNext());
+    }
+    return s;
+  }
 private:
   Node* head;
 

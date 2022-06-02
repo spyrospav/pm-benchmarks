@@ -10,55 +10,55 @@
 
 class Node{
 public:
-	int value;
-	int key;
-	Node* volatile next;
+  int value;
+  int key;
+  Node* volatile next;
 
-	Node(int val, int k, Node* n) {
-		value = val;
-		key = k;
-		next = n;
-	}
+  Node(int val, int k, Node* n) {
+    value = val;
+    key = k;
+    next = n;
+  }
 
-	Node(int val, int k) {
-		value = val;
-		key = k;
-		next = NULL;
-	}
+  Node(int val, int k) {
+    value = val;
+    key = k;
+    next = NULL;
+  }
 
-	Node() {
-		value = int();
-		key = 0;
-		next = NULL;
-	}
+  Node() {
+    value = int();
+    key = 0;
+    next = NULL;
+  }
 
-	void set(int k, int val, Node* n) {
-		key = k;
-		value = val;
-		next = n;
-	}
+  void set(int k, int val, Node* n) {
+    key = k;
+    value = val;
+    next = n;
+  }
 
-	Node* getNextF() {
-		Node* n = next;
-		FLUSH(&next);
-		return n;
-	}
+  Node* getNextF() {
+    Node* n = next;
+    FLUSH(&next);
+    return n;
+  }
 
-	Node* getNext() {
-		Node* n = next;
-		return n;
-	}
+  Node* getNext() {
+    Node* n = next;
+    return n;
+  }
 
-	bool CAS_nextF(Node* exp, Node* n) {
-		Node* old = next;
-		if(exp != old) {
-			FLUSH(&next);
-			return false;
-		}
-		bool ret = CAS(&next, old, n);
-		FLUSH(&next);
-		return ret;
-	}
+  bool CAS_nextF(Node* exp, Node* n) {
+    Node* old = next;
+    if(exp != old) {
+      FLUSH(&next);
+      return false;
+    }
+    bool ret = CAS(&next, old, n);
+    FLUSH(&next);
+    return ret;
+  }
 
 };
 
@@ -92,23 +92,23 @@ Node* getNewNode()
 }
 
 class ListTraverse {
-	public:
+  public:
 
-	class Window {
-	public:
-		Node* pred;
-		Node* curr;
-		Window(Node* myPred, Node* myCurr) {
-			pred = myPred;
-			curr = myCurr;
-		}
-	};
+  class Window {
+  public:
+    Node* pred;
+    Node* curr;
+    Window(Node* myPred, Node* myCurr) {
+      pred = myPred;
+      curr = myCurr;
+    }
+  };
 
-	ListTraverse() {
+  ListTraverse() {
     allocateNodes();
     head = getNewNode();
-		head->set(INT_MIN, INT_MIN, NULL);
-	}
+    head->set(INT_MIN, INT_MIN, NULL);
+  }
 
   Node* getAdd(Node* n) {
     long node = (long)n;
@@ -126,14 +126,13 @@ class ListTraverse {
     return (Node*)node;
   }
 
-	Window* find(Node* head, int key) {
+  Window* find(Node* head, int key) {
     Node* leftParent = head;
     Node* left = head;
     Node* leftNext = head->getNext();
     Node* right = NULL;
 
     Node* traverseNodes[MAXNODES];
-
     Node* pred = NULL;
     Node* curr = NULL;
     Node* currAdd = NULL;
@@ -165,7 +164,7 @@ class ListTraverse {
         }
         succ = currAdd->getNext();
         marked = getMark(succ);
-    	}
+      }
       right = currAdd;
       traverseNodes[numNodes++] = right;
       /* 2: Check nodes are adjacent */
@@ -173,12 +172,12 @@ class ListTraverse {
         if ((right != NULL) && getMark(right->getNext())) {
             continue;
         }
-				else {
+        else {
           traverseNodes[numNodes++] = leftParent;
           for (int i = 0; i < numNodes; i++) {
               if (traverseNodes[i]) FLUSH(traverseNodes[i]);
           }
-					Window* w = new Window(left, right);
+          Window* w = new Window(left, right);
           return w;
         }
       }
@@ -198,15 +197,15 @@ class ListTraverse {
         if ((right != NULL) && getMark(right->getNextF())) {
           continue;
         }
-				else {
-					Window* w = new Window(left, right);
+        else {
+          Window* w = new Window(left, right);
           return w;
         }
       }
     }
   }
 
-	bool insert(int k, int item) {
+  bool insert(int k, int item) {
     while (true) {
       Window* window = find(head, k);
       Node* pred = window->pred;
@@ -215,7 +214,7 @@ class ListTraverse {
         SFENCE();
         return false;
       }
-			Node* node = getNewNode();
+      Node* node = getNewNode();
       node->set(k, item, curr);
       FLUSH(node);
       bool res = pred->CAS_nextF(curr, node);
@@ -227,36 +226,36 @@ class ListTraverse {
     }
   }
 
-	bool remove(int key) {
-		bool snip = false;
-		while (true) {
-			Window* window = find(head, key);
-			Node* pred = window->pred;
-			Node* curr = window->curr;
-			free(window);
-			if (!curr || curr->key != key) {
-	      SFENCE();
-				return false;
-			}
-			else {
+  bool remove(int key) {
+    bool snip = false;
+    while (true) {
+      Window* window = find(head, key);
+      Node* pred = window->pred;
+      Node* curr = window->curr;
+      free(window);
+      if (!curr || curr->key != key) {
+        SFENCE();
+        return false;
+      }
+      else {
         Node* succ = curr->getNextF();
         Node* succAndMark = mark(succ);
         if (succ == succAndMark) {
             continue;
         }
         snip = curr->CAS_nextF(succ, succAndMark);
-				if (!snip)
-					continue;
+        if (!snip)
+          continue;
         if (pred->CAS_nextF(curr, succ)){
           free(curr);
-  			}
-	      SFENCE();
-		    return true;
-			}
-		}
-	}
+        }
+        SFENCE();
+        return true;
+      }
+    }
+  }
 
-	bool contains(int key) {
+  bool contains(int key) {
     Node* pred = head;
     Node* curr = head;
     bool marked = getMark(curr->getNext());
@@ -275,16 +274,16 @@ class ListTraverse {
     // Possibly SFENCE() should be moved here!
     if(curr->key == key && !marked){
       SFENCE();
-    	return true;
+      return true;
     }
-		else {
+    else {
       SFENCE();
       return false;
     }
   }
 
 private:
-	Node* volatile head;
+  Node* volatile head;
 
 };
 
