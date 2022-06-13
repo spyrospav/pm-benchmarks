@@ -50,12 +50,12 @@ public:
  */
 __VERIFIER_persistent_storage(Node * nodes[MAXNODES]);
 
-static std::atomic_int node_idx;
+static int node_idx;
 
 void allocateNodes()
 {
 
-  node_idx.store(0);
+  node_idx = 0;
   for (int i = 0; i < MAXNODES; i++) {
     nodes[i] = (Node *)__VERIFIER_palloc(sizeof(Node));
     new (nodes[i]) Node();

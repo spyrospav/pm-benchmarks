@@ -10,6 +10,7 @@ expected_results=(
   ["2W+RFW"]="safe"
   ["CAS+CAS"]="safe"
   ["WW+RMFW"]="safe"
+  ["SWFW"]="safe"
 
   #NVTraverse
   ["List0"]="unsafe"

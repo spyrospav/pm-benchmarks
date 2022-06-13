@@ -20,9 +20,11 @@
 
 GenMC=/home/spyros/Desktop/thesis/genmc-tool/src/genmc
 PMBENCHMARKS=$(pwd)
+FLUSHFLAG=-DPWB_IS_CLFLUSH
 
 LITMUS=${PMBENCHMARKS}/litmus
 NVTRAVERSE=${PMBENCHMARKS}/NVTraverse
+PERSISTENT_QUEUE=${PMBENCHMARKS}/PersistentQueue
 
 RED=`tput setaf 1`
 GREEN=`tput setaf 2`
@@ -53,9 +55,13 @@ printline() {
 
 print_header() {
 
+  header="Running ${header} tests"
+  sl1=$(((68-${#header})/2))
+  sl2=$((69-$sl1-${#header}))
+  echo ${sl}
   echo
   printline
-  echo "${header}"
+  printf "*%*s%s%*s\n" $((${sl1})) "" "$header" $((${sl2})) "*"
   printline
   echo
   printline
@@ -101,8 +107,8 @@ run_single_test() {
   if [ ${debug_mode} == 1 ]
   then
 
-    output=`${GenMC} -disable-race-detection --tso --persevere \
-      --dump-error-graph=${GRAPHS}/${testname}.dot -- -DPWB_IS_CLFLUSH ${test} 2>&1`
+    output=`${GenMC} -disable-race-detection --tso --persevere --print-exec-graphs \
+      --dump-error-graph=${GRAPHS}/${testname}.dot --print-error-trace -- ${FLUSHFLAG} ${test} 2>&1`
 
     print_single_result
 
@@ -112,7 +118,7 @@ run_single_test() {
 
   else
 
-    output=`${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${test} 2>&1`
+    output=`${GenMC} -disable-race-detection --tso --persevere -- ${FLUSHFLAG} ${test} 2>&1`
 
     print_single_result
 
@@ -126,7 +132,7 @@ run_single_test() {
 # Run litmus tests
 #
 
-header="*                        Running litmus tests                        *"
+header="litmus"
 print_header
 
 for test in ${LITMUS}/*.cpp
@@ -141,10 +147,10 @@ printline
 # Run NVTraverse tests
 #
 
-header="*                      Running NVTraverse tests                      *"
+header="NVTraverse"
 print_header
 
-for ds in List Skiplist
+for ds in List #Skiplist
 do
   for test in ${NVTRAVERSE}/${ds}/*.cpp
   do
@@ -152,6 +158,21 @@ do
     run_single_test
 
   done
+done
+printline
+
+#
+# Run PersistentQueue tests
+#
+
+header="PersistentQueue"
+print_header
+
+for test in ${PERSISTENT_QUEUE}/MSQueue.cpp
+do
+
+  run_single_test
+
 done
 printline
 

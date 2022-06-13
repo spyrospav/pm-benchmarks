@@ -14,21 +14,11 @@ public:
   int key;
   Node* volatile next;
 
-  Node(int val, int k, Node* n) {
-    value = val;
-    key = k;
-    next = n;
-  }
-
-  Node(int val, int k) {
-    value = val;
-    key = k;
-    next = NULL;
-  }
+  Node(int val, int k, Node* n) : value(val), key(k), next(n) {}
 
   Node() {
+    key = INT_MIN;
     value = int();
-    key = 0;
     next = NULL;
   }
 
@@ -72,27 +62,25 @@ public:
  */
 __VERIFIER_persistent_storage(Node* nodes[MAXNODES]);
 
-static std::atomic_int node_idx;
+static int node_idx;
 
 void allocateNodes()
 {
-  node_idx.store(0);
+  node_idx = 0;
   for (int i = 0; i < MAXNODES; i++) {
     nodes[i] = (Node *)__VERIFIER_palloc(sizeof(Node));
-    nodes[i]->key = INT_MIN;
-    nodes[i]->value = int();
-    nodes[i]->next = NULL;
+    new (nodes[i]) Node();
   }
-
+  MFENCE();
 }
 
 Node* getNewNode()
 {
-  return nodes[node_idx.fetch_add(1)];
+  return nodes[node_idx++];
 }
 
 class ListTraverse {
-  public:
+public:
 
   class Window {
   public:
@@ -108,6 +96,7 @@ class ListTraverse {
     allocateNodes();
     head = getNewNode();
     head->set(INT_MIN, INT_MIN, NULL);
+    MFENCE();
   }
 
   Node* getAdd(Node* n) {
@@ -153,7 +142,7 @@ class ListTraverse {
           left = currAdd;
           leftNext = succ;
           numNodes = 0;
-          //traverseNodes[numNodes++] = leftNext;
+          // traverseNodes[numNodes++] = leftNext;
         }
         traverseNodes[numNodes++] = currAdd;
         pred = currAdd;
@@ -210,6 +199,7 @@ class ListTraverse {
       Window* window = find(head, k);
       Node* pred = window->pred;
       Node* curr = window->curr;
+      free(window);
       if (curr && curr->key == k) {
         SFENCE();
         return false;
