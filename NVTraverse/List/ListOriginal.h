@@ -1,44 +1,12 @@
 #ifndef LIST_ORIGINAL_H_
 #define LIST_ORIGINAL_H_
 
-#include "../Utilities.h"
+#include "Utilities.h"
 #include <assert.h>
 #include <genmc.h>
 #include <new>
 
 #define MAXNODES 10
-
-class Node{
-public:
-  int key;
-  int value;
-  Node* next;
-
-  Node(int k, int val, Node* n) : key(k), value(val), next(n) {}
-
-  Node() {
-    key = INT_MIN;
-    value = int();
-    next = NULL;
-  }
-
-  Node* getNext() {
-    return next;
-  }
-
-  bool CAS_nextF(Node* exp, Node* n) {
-    bool ret = CAS(&next, exp, n);
-    return ret;
-  }
-
-  bool CAS_next(Node* exp, Node* n) {
-    Node* old = next;
-    if(exp != old) return false;
-    bool ret = CAS(&next, old, n);
-    return ret;
-  }
-
-};
 
 /*
  * All variables that are read during recovery should have been declared
@@ -50,12 +18,12 @@ public:
  */
 __VERIFIER_persistent_storage(Node * nodes[MAXNODES]);
 
-static int node_idx;
+static std::atomic_int node_idx;
 
 void allocateNodes()
 {
 
-  node_idx = 0;
+  node_idx.store(0);
   for (int i = 0; i < MAXNODES; i++) {
     nodes[i] = (Node *)__VERIFIER_palloc(sizeof(Node));
     new (nodes[i]) Node();
@@ -65,7 +33,7 @@ void allocateNodes()
 
 Node* getNewNode()
 {
-  return nodes[node_idx++];
+  return nodes[node_idx.fetch_add(1)];
 }
 
 class ListOriginal{
@@ -187,13 +155,13 @@ public:
       node->key = k;
       node->value = item;
       node->next = curr;
-      bool res = pred->CAS_nextF(curr, node);
+      bool res = pred->CAS_next(curr, node);
       if (res) {
         return true;
       }
       else {
         // We don't care about GC for now
-        // free(node);
+        free(node);
         continue;
       }
     }

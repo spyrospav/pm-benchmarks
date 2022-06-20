@@ -1,56 +1,12 @@
 #ifndef LIST_TRAVERSE_H_
 #define LIST_TRAVERSE_H_
 
-#include "../Utilities.h"
+#include "Utilities.h"
 #include <assert.h>
 #include <genmc.h>
 #include <new>
 
 #define MAXNODES 10
-
-class Node{
-public:
-  int value;
-  int key;
-  Node* volatile next;
-
-  Node(int val, int k, Node* n) : value(val), key(k), next(n) {}
-
-  Node() {
-    key = INT_MIN;
-    value = int();
-    next = NULL;
-  }
-
-  void set(int k, int val, Node* n) {
-    key = k;
-    value = val;
-    next = n;
-  }
-
-  Node* getNextF() {
-    Node* n = next;
-    FLUSH(&next);
-    return n;
-  }
-
-  Node* getNext() {
-    Node* n = next;
-    return n;
-  }
-
-  bool CAS_nextF(Node* exp, Node* n) {
-    Node* old = next;
-    if(exp != old) {
-      FLUSH(&next);
-      return false;
-    }
-    bool ret = CAS(&next, old, n);
-    FLUSH(&next);
-    return ret;
-  }
-
-};
 
 /*
  * All variables that are read during recovery should have been declared
@@ -62,11 +18,11 @@ public:
  */
 __VERIFIER_persistent_storage(Node* nodes[MAXNODES]);
 
-static int node_idx;
+static std::atomic_int node_idx;
 
 void allocateNodes()
 {
-  node_idx = 0;
+  node_idx.store(0);
   for (int i = 0; i < MAXNODES; i++) {
     nodes[i] = (Node *)__VERIFIER_palloc(sizeof(Node));
     new (nodes[i]) Node();
@@ -76,7 +32,7 @@ void allocateNodes()
 
 Node* getNewNode()
 {
-  return nodes[node_idx++];
+  return nodes[node_idx.fetch_add(1)];
 }
 
 class ListTraverse {
@@ -96,7 +52,6 @@ public:
     allocateNodes();
     head = getNewNode();
     head->set(INT_MIN, INT_MIN, NULL);
-    MFENCE();
   }
 
   Node* getAdd(Node* n) {
@@ -121,7 +76,7 @@ public:
     Node* leftNext = head->getNext();
     Node* right = NULL;
 
-    Node* traverseNodes[MAXNODES];
+    Node* traverseNodes[MAXNODES*5];
     Node* pred = NULL;
     Node* curr = NULL;
     Node* currAdd = NULL;
@@ -164,7 +119,9 @@ public:
         else {
           traverseNodes[numNodes++] = leftParent;
           for (int i = 0; i < numNodes; i++) {
-              if (traverseNodes[i]) FLUSH(traverseNodes[i]);
+              if (traverseNodes[i]) {
+                FLUSH(traverseNodes[i]);
+              }
           }
           Window* w = new Window(left, right);
           return w;
@@ -180,7 +137,7 @@ public:
       if (left->CAS_nextF(leftNext, right)) {
         for (int i = 1; i <= numNodes-3; i++) {
           if (traverseNodes[i]) {
-            free(traverseNodes[i]);
+            // free(traverseNodes[i]);
           }
         }
         if ((right != NULL) && getMark(right->getNextF())) {
@@ -199,7 +156,7 @@ public:
       Window* window = find(head, k);
       Node* pred = window->pred;
       Node* curr = window->curr;
-      free(window);
+      // free(window);
       if (curr && curr->key == k) {
         SFENCE();
         return false;
@@ -212,7 +169,7 @@ public:
         SFENCE();
         return true;
       }
-      free(node);
+      // free(node);
     }
   }
 
@@ -222,7 +179,7 @@ public:
       Window* window = find(head, key);
       Node* pred = window->pred;
       Node* curr = window->curr;
-      free(window);
+      // free(window);
       if (!curr || curr->key != key) {
         SFENCE();
         return false;
@@ -237,7 +194,7 @@ public:
         if (!snip)
           continue;
         if (pred->CAS_nextF(curr, succ)){
-          free(curr);
+          // free(curr);
         }
         SFENCE();
         return true;

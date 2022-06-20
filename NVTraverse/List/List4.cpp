@@ -6,18 +6,17 @@
 
 int __thread tid;
 
-#include "ListTraverse.h"
+#include "ListOriginal.h"
 
 static pthread_t threads[2];
 static int param[2] = {0, 1};
 
-__VERIFIER_persistent_storage(static ListTraverse* list);
-__VERIFIER_persistent_storage(bool res2);
+__VERIFIER_persistent_storage(static ListOriginal* list);
 
 void *thread1(void *param)
 {
 
-  list->insert(1, 10);
+  list->remove(3);
 
   return NULL;
 
@@ -26,7 +25,7 @@ void *thread1(void *param)
 void *thread2(void *param)
 {
 
-  res2 = list->insert(2, 10);
+  list->insert(2, 10);
 
   return NULL;
 
@@ -35,8 +34,7 @@ void *thread2(void *param)
 void __VERIFIER_recovery_routine(void)
 {
 
-  if (res2)
-    assert(list->contains(2));
+  assert(list->contains(4));
 
   return;
 
@@ -44,13 +42,12 @@ void __VERIFIER_recovery_routine(void)
 
 int main() {
 
-  list = (ListTraverse*)__VERIFIER_palloc(sizeof(ListTraverse));
-  new (list) ListTraverse();
+  list = (ListOriginal*)__VERIFIER_palloc(sizeof(ListOriginal));
+  new (list) ListOriginal();
 
   list->insert(0,10);
   list->insert(3,10);
-
-  res2 = false;
+  list->insert(4,10);
 
   __VERIFIER_pbarrier();
 

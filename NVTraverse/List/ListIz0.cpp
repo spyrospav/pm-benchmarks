@@ -4,12 +4,7 @@
 #include <pthread.h>
 #include <assert.h>
 
-int __thread tid;
-
 #include "ListIz.h"
-
-static pthread_t threads[2];
-static int param[2] = {0, 1};
 
 __VERIFIER_persistent_storage(static ListIz* list);
 

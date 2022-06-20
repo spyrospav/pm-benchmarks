@@ -49,15 +49,15 @@ source "${PMBENCHMARKS}/catalog.sh"
 
 printline() {
 
-  for _ in {0..69}; do echo -n '-'; done; echo''
+  for _ in {0..71}; do echo -n '-'; done; echo''
 
 }
 
 print_header() {
 
   header="Running ${header} tests"
-  sl1=$(((68-${#header})/2))
-  sl2=$((69-$sl1-${#header}))
+  sl1=$(((70-${#header})/2))
+  sl2=$((71-$sl1-${#header}))
   echo ${sl}
   echo
   printline
@@ -65,7 +65,7 @@ print_header() {
   printline
   echo
   printline
-  printf "| ${CYAN}%-12s${NC} | ${CYAN}%-8s${NC} | ${CYAN}%-6s${NC} | ${CYAN}%-10s${NC} | ${CYAN}%-7s${NC} | ${CYAN}% 8s${NC} |\n" \
+  printf "| ${CYAN}%-14s${NC} | ${CYAN}%-8s${NC} | ${CYAN}%-6s${NC} | ${CYAN}%-10s${NC} | ${CYAN}%-7s${NC} | ${CYAN}% 8s${NC} |\n" \
   	   "Testcase" "Expected" "Status" "Executions" "Blocked" "Time"
   printline
 
@@ -94,7 +94,7 @@ print_single_result() {
   time=`echo "${output}" | awk '/time/ { print substr($4, 1, length($4)-1) }'`
   time="${time}" && [[ -z "${time}" ]] && time=0 # if pattern was NOT found
 
-  printf "| ${POWDER_BLUE}%-12s${NC} | % 8s | ${rescolour}% 6s${NC} | % 10s | % 7s | %8s |\n" \
+  printf "| ${POWDER_BLUE}%-14s${NC} | % 8s | ${rescolour}% 6s${NC} | % 10s | % 7s | %8s |\n" \
      "${testname}" "${expected}" "${res}" "${explored}" "${blocked}" "${time}s"
 
 }
@@ -107,13 +107,13 @@ run_single_test() {
   if [ ${debug_mode} == 1 ]
   then
 
-    output=`${GenMC} -disable-race-detection --tso --persevere --print-exec-graphs \
-      --dump-error-graph=${GRAPHS}/${testname}.dot --print-error-trace -- ${FLUSHFLAG} ${test} 2>&1`
+    output=`${GenMC} -disable-race-detection --tso --persevere --dump-error-graph=${GRAPHS}/${testname}.dot \
+      --print-error-trace -- ${FLUSHFLAG} ${test} 2>&1`
 
     print_single_result
 
     if test -f "${GRAPHS}/${testname}.dot"; then
-      dot -Tps ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.ps
+      dot -Tpng ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.png
     fi
 
   else
@@ -135,10 +135,15 @@ run_single_test() {
 header="litmus"
 print_header
 
+outfile=$OUT/litmus.tex
+truncate -s 0 ${outfile}
+
 for test in ${LITMUS}/*.cpp
 do
 
   run_single_test
+
+  echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
 
 done
 printline
@@ -152,12 +157,19 @@ print_header
 
 for ds in List #Skiplist
 do
+
+  outfile=$OUT/nvtraverse.tex
+  truncate -s 0 ${outfile}
+
   for test in ${NVTRAVERSE}/${ds}/*.cpp
   do
 
     run_single_test
 
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
+
   done
+
 done
 printline
 
@@ -168,7 +180,7 @@ printline
 header="PersistentQueue"
 print_header
 
-for test in ${PERSISTENT_QUEUE}/MSQueue.cpp
+for test in ${PERSISTENT_QUEUE}/*.cpp
 do
 
   run_single_test

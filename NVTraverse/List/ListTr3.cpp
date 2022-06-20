@@ -12,7 +12,6 @@ static pthread_t threads[2];
 static int param[2] = {0, 1};
 
 __VERIFIER_persistent_storage(static ListTraverse* list);
-__VERIFIER_persistent_storage(bool res2);
 
 void *thread1(void *param)
 {
@@ -26,7 +25,8 @@ void *thread1(void *param)
 void *thread2(void *param)
 {
 
-  res2 = list->insert(2, 10);
+  list->insert(2, 10);
+  list->insert(4, 10);
 
   return NULL;
 
@@ -35,7 +35,7 @@ void *thread2(void *param)
 void __VERIFIER_recovery_routine(void)
 {
 
-  if (res2)
+  if (list->contains(4))
     assert(list->contains(2));
 
   return;
@@ -49,8 +49,6 @@ int main() {
 
   list->insert(0,10);
   list->insert(3,10);
-
-  res2 = false;
 
   __VERIFIER_pbarrier();
 

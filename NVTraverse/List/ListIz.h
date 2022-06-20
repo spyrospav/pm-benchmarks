@@ -1,60 +1,12 @@
 #ifndef LIST_IZ_H_
 #define LIST_IZ_H_
 
-#include "../Utilities.h"
+#include "Utilities.h"
 #include <assert.h>
 #include <genmc.h>
 #include <new>
 
 #define MAXNODES 10
-
-class Node{
-public:
-	int key;
-	int value;
-	Node* volatile next;
-
-	Node(int k, int val) {
-		key = k;
-		value = val;
-		next = NULL;
-	}
-
-	Node(int k, int val, Node* n) {
-		key = k;
-		value = val;
-		next = n;
-	}
-
-	Node() {
-		key = INT_MIN;
-		value = int();
-		next = NULL;
-	}
-
-	void set(int k, int val, Node* n) {
-		key = k;
-		value = val;
-		next = n;
-	}
-
-	bool CAS_next(Node* exp, Node* n) {
-		Node* old = next;
-		if (exp != old) {
-			BARRIER(&next);
-			return false;
-		}
-		bool ret = CAS(&next, exp, n);
-		BARRIER(&next);
-		return ret;
-	}
-
-	Node* getNext() {
-		Node* n = next;
-		BARRIER(&next);
-		return n;
-	}
-};
 
 /*
  * All variables that are read during recovery should have been declared
@@ -120,7 +72,7 @@ public:
 
 	Window* find(Node* head, int key) {
     Node* left = head;
-    Node* leftNext = head->getNext();
+    Node* leftNext = head->getNextB();
     Node* right = NULL;
     Node* curr = NULL;
     Node* currAdd = NULL;
@@ -131,7 +83,7 @@ public:
       numNodes = 0;
       curr = head;
       currAdd = curr;
-      succ = currAdd->getNext();
+      succ = currAdd->getNextB();
       marked = getMark(succ);
       /* 1: Find left and right */
       while (marked || currAdd->key < key) {
@@ -146,7 +98,7 @@ public:
         if (currAdd == NULL) {
           break;
         }
-        succ = currAdd->getNext();
+        succ = currAdd->getNextB();
         marked = getMark(succ);
       }
 
@@ -154,7 +106,7 @@ public:
 
 			/* 2: Check nodes are adjacent */
       if (leftNext == right) {
-        if ((right != NULL) && getMark(right->getNext())) {
+        if ((right != NULL) && getMark(right->getNextB())) {
           continue;
         }
 				else {
@@ -164,13 +116,13 @@ public:
       }
 
 			/* 3: Remove one or more marked nodes */
-      if (left->CAS_next(leftNext, right)) {
+      if (left->CAS_nextB(leftNext, right)) {
         for (int i = 1; i < numNodes; i++) {
           // if (nodes[i]) {
           //   ssmem_free(alloc, nodes[i]);
           // }
         }
-        if ((right != NULL) && getMark(right->getNext())) {
+        if ((right != NULL) && getMark(right->getNextB())) {
           continue;
         }
 				else {
@@ -193,7 +145,7 @@ public:
     	Node* node = getNewNode();
 			node->set(k, item, curr);
       FLUSH(node);
-      if (pred->CAS_next(curr, node)) {
+      if (pred->CAS_nextB(curr, node)) {
         SFENCE();
         return true;
       }
@@ -217,15 +169,15 @@ public:
 				return false;
 			}
 			else {
-        Node* succ = curr->getNext();
+        Node* succ = curr->getNextB();
         Node* succAndMark = mark(succ);
         if (succ == succAndMark) {
             continue;
         }
-        snip = curr->CAS_next(succ, succAndMark);
+        snip = curr->CAS_nextB(succ, succAndMark);
         if (!snip)
           continue;
-				if (pred->CAS_next(curr, succ)) {
+				if (pred->CAS_nextB(curr, succ)) {
 					// We don't care about GC now
 					// ssmem_free(alloc, curr);
 				}
@@ -238,14 +190,14 @@ public:
 	bool contains(int k) {
     int key = k;
     Node* curr = head;
-    bool marked = getMark(curr->getNext());
+    bool marked = getMark(curr->getNextB());
     while (curr->key < key) {
-      curr = getAdd(curr->getNext());
+      curr = getAdd(curr->getNextB());
       if (!curr) {
         SFENCE();
         return false;
       }
-      marked = getMark(curr->getNext());
+      marked = getMark(curr->getNextB());
     }
 		if (curr->key == key && !marked){
       SFENCE();
