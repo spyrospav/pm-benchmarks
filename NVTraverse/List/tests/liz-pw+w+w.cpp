@@ -6,12 +6,12 @@
 
 int __thread tid;
 
-#include "ListOriginal.h"
+#include "../ListIz.h"
 
 static pthread_t threads[2];
 static int param[2] = {0, 1};
 
-__VERIFIER_persistent_storage(static ListOriginal* list);
+__VERIFIER_persistent_storage(static ListIz* list);
 __VERIFIER_persistent_storage(bool res2);
 
 void *thread1(void *param)
@@ -44,8 +44,8 @@ void __VERIFIER_recovery_routine(void)
 
 int main() {
 
-  list = (ListOriginal*)__VERIFIER_palloc(sizeof(ListOriginal));
-  new (list) ListOriginal();
+  list = (ListIz*)__VERIFIER_palloc(sizeof(ListIz));
+  new (list) ListIz();
 
   list->insert(0,10);
   list->insert(3,10);

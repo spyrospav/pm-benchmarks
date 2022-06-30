@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <assert.h>
 
-#include "ListOriginal.h"
+#include "../ListOriginal.h"
 
 __VERIFIER_persistent_storage(static ListOriginal* list);
 
@@ -22,6 +22,8 @@ int main() {
 
   list = (ListOriginal*)__VERIFIER_palloc(sizeof(ListOriginal));
   new (list) ListOriginal();
+
+  list->insert(2,10);
 
   __VERIFIER_pbarrier();
 

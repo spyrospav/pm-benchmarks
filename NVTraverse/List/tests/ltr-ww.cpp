@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <assert.h>
 
-#include "ListTraverse.h"
+#include "../ListTraverse.h"
 
 __VERIFIER_persistent_storage(static ListTraverse* list);
 
@@ -22,8 +22,6 @@ int main() {
 
   list = (ListTraverse*)__VERIFIER_palloc(sizeof(ListTraverse));
   new (list) ListTraverse();
-
-  list->insert(2,10);
 
   __VERIFIER_pbarrier();
 

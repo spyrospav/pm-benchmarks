@@ -4,9 +4,9 @@
 #include <pthread.h>
 #include <assert.h>
 
-#include "ListIz.h"
+#include "../ListOriginal.h"
 
-__VERIFIER_persistent_storage(static ListIz* list);
+__VERIFIER_persistent_storage(static ListOriginal* list);
 
 void __VERIFIER_recovery_routine(void)
 {
@@ -20,8 +20,8 @@ void __VERIFIER_recovery_routine(void)
 
 int main() {
 
-  list = (ListIz*)__VERIFIER_palloc(sizeof(ListIz));
-  new (list) ListIz();
+  list = (ListOriginal*)__VERIFIER_palloc(sizeof(ListOriginal));
+  new (list) ListOriginal();
 
   __VERIFIER_pbarrier();
 

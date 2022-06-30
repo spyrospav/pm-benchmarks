@@ -6,18 +6,17 @@
 
 int __thread tid;
 
-#include "ListIz.h"
+#include "../ListTraverse.h"
 
-static pthread_t threads[2];
-static int param[2] = {0, 1};
+static pthread_t threads[3];
+static int param[3] = {0, 1, 2};
 
-__VERIFIER_persistent_storage(static ListIz* list);
-__VERIFIER_persistent_storage(bool res2);
+__VERIFIER_persistent_storage(static ListTraverse* list);
 
 void *thread1(void *param)
 {
 
-  list->insert(1, 10);
+  list->remove(3);
 
   return NULL;
 
@@ -26,7 +25,16 @@ void *thread1(void *param)
 void *thread2(void *param)
 {
 
-  res2 = list->insert(2, 10);
+  list->insert(2, 10);
+
+  return NULL;
+
+}
+
+void *thread3(void *param)
+{
+
+  list->insert(1, 10);
 
   return NULL;
 
@@ -35,8 +43,7 @@ void *thread2(void *param)
 void __VERIFIER_recovery_routine(void)
 {
 
-  if (res2)
-    assert(list->contains(2));
+  assert(list->contains(4));
 
   return;
 
@@ -44,21 +51,22 @@ void __VERIFIER_recovery_routine(void)
 
 int main() {
 
-  list = (ListIz*)__VERIFIER_palloc(sizeof(ListIz));
-  new (list) ListIz();
+  list = (ListTraverse*)__VERIFIER_palloc(sizeof(ListTraverse));
+  new (list) ListTraverse();
 
   list->insert(0,10);
   list->insert(3,10);
-
-  res2 = false;
+  list->insert(4,10);
 
   __VERIFIER_pbarrier();
 
   pthread_create(&threads[0], NULL, thread1, &param[0]);
   pthread_create(&threads[1], NULL, thread2, &param[1]);
+  pthread_create(&threads[2], NULL, thread2, &param[2]);
 
   pthread_join(threads[0], NULL);
   pthread_join(threads[1], NULL);
+  pthread_join(threads[2], NULL);
 
   return 0;
 

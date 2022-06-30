@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <assert.h>
 
-#include "ListIz.h"
+#include "../ListIz.h"
 
 __VERIFIER_persistent_storage(static ListIz* list);
 

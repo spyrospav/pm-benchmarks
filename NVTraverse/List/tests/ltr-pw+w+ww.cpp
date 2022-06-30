@@ -6,12 +6,12 @@
 
 int __thread tid;
 
-#include "ListOriginal.h"
+#include "../ListTraverse.h"
 
 static pthread_t threads[2];
 static int param[2] = {0, 1};
 
-__VERIFIER_persistent_storage(static ListOriginal* list);
+__VERIFIER_persistent_storage(static ListTraverse* list);
 
 void *thread1(void *param)
 {
@@ -44,8 +44,8 @@ void __VERIFIER_recovery_routine(void)
 
 int main() {
 
-  list = (ListOriginal*)__VERIFIER_palloc(sizeof(ListOriginal));
-  new (list) ListOriginal();
+  list = (ListTraverse*)__VERIFIER_palloc(sizeof(ListTraverse));
+  new (list) ListTraverse();
 
   list->insert(0,10);
   list->insert(3,10);

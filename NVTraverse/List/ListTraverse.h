@@ -156,7 +156,7 @@ public:
       Window* window = find(head, k);
       Node* pred = window->pred;
       Node* curr = window->curr;
-      // free(window);
+      free(window);
       if (curr && curr->key == k) {
         SFENCE();
         return false;
@@ -169,7 +169,7 @@ public:
         SFENCE();
         return true;
       }
-      // free(node);
+      free(node);
     }
   }
 
@@ -179,7 +179,7 @@ public:
       Window* window = find(head, key);
       Node* pred = window->pred;
       Node* curr = window->curr;
-      // free(window);
+      free(window);
       if (!curr || curr->key != key) {
         SFENCE();
         return false;

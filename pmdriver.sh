@@ -18,7 +18,7 @@
 #
 # Author: Spyros Pavlatos <spyrospavlatos4@gmail.com>
 
-GenMC=/home/spyros/Desktop/thesis/genmc-tool/src/genmc
+GenMC=/home/spyros/Desktop/genmc-tool/src/genmc
 PMBENCHMARKS=$(pwd)
 FLUSHFLAG=-DPWB_IS_CLFLUSH
 
@@ -161,7 +161,7 @@ do
   outfile=$OUT/nvtraverse.tex
   truncate -s 0 ${outfile}
 
-  for test in ${NVTRAVERSE}/${ds}/*.cpp
+  for test in ${NVTRAVERSE}/${ds}/tests/*.cpp
   do
 
     run_single_test
