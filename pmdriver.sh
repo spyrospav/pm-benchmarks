@@ -18,15 +18,13 @@
 #
 # Author: Spyros Pavlatos <spyrospavlatos4@gmail.com>
 
-GenMC=/home/spyros/Desktop/thesis/genmc-tool/src/genmc
+GenMC=/home/spyros/Desktop/genmc-tool/src/genmc
 PMBENCHMARKS=$(pwd)
-
-source "${PMBENCHMARKS}/catalog.sh"
-
-OUT=${PMBENCHMARKS}/out
+FLUSHFLAG=-DPWB_IS_CLFLUSH
 
 LITMUS=${PMBENCHMARKS}/litmus
 NVTRAVERSE=${PMBENCHMARKS}/NVTraverse
+PERSISTENT_QUEUE=${PMBENCHMARKS}/PersistentQueue
 
 RED=`tput setaf 1`
 GREEN=`tput setaf 2`
@@ -34,21 +32,40 @@ CYAN=`tput setaf 6`
 POWDER_BLUE=`tput setaf 153`
 NC=`tput sgr0`
 
+mkdir -p ${PMBENCHMARKS}/out
+OUT=${PMBENCHMARKS}/out
+
+debug_mode=1
+
+if [ ${debug_mode} == 1 ]
+then
+  echo
+  echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~DEBUG MODE ON~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+  mkdir -p ${OUT}/graphs
+  GRAPHS=${OUT}/graphs
+fi
+
+source "${PMBENCHMARKS}/catalog.sh"
+
 printline() {
 
-  for _ in {0..69}; do echo -n '-'; done; echo''
+  for _ in {0..71}; do echo -n '-'; done; echo''
 
 }
 
 print_header() {
 
+  header="Running ${header} tests"
+  sl1=$(((70-${#header})/2))
+  sl2=$((71-$sl1-${#header}))
+  echo ${sl}
   echo
   printline
-  echo "${header}"
+  printf "*%*s%s%*s\n" $((${sl1})) "" "$header" $((${sl2})) "*"
   printline
   echo
   printline
-  printf "| ${CYAN}%-12s${NC} | ${CYAN}%-8s${NC} | ${CYAN}%-6s${NC} | ${CYAN}%-10s${NC} | ${CYAN}%-7s${NC} | ${CYAN}% 8s${NC} |\n" \
+  printf "| ${CYAN}%-14s${NC} | ${CYAN}%-8s${NC} | ${CYAN}%-6s${NC} | ${CYAN}%-10s${NC} | ${CYAN}%-7s${NC} | ${CYAN}% 8s${NC} |\n" \
   	   "Testcase" "Expected" "Status" "Executions" "Blocked" "Time"
   printline
 
@@ -58,23 +75,12 @@ print_single_result() {
 
   if test "$?" -ne 0
   then
-    if [ "${expected_results[${test}]}" == "unsafe" ]
-    then
-      result=1
-
-    else
-      result=0
-    fi
+    actual_res="unsafe"
   else
-    if [ "${expected_results[${test}]}" == "safe" ]
-    then
-      result=1
-    else
-      result=0
-    fi
+    actual_res="safe"
   fi
 
-  if [ ${result} == 1 ]
+  if [ "${actual_res}" == "${expected}" ]
   then
     rescolour=$GREEN
     res="pass"
@@ -88,8 +94,37 @@ print_single_result() {
   time=`echo "${output}" | awk '/time/ { print substr($4, 1, length($4)-1) }'`
   time="${time}" && [[ -z "${time}" ]] && time=0 # if pattern was NOT found
 
-  printf "| ${POWDER_BLUE}%-12s${NC} | % 8s | ${rescolour}% 6s${NC} | % 10s | % 7s | %8s |\n" \
-     "${test}" "${expected_results[${test}]}" "${res}" "${explored}" "${blocked}" "${time}s"
+  printf "| ${POWDER_BLUE}%-14s${NC} | % 8s | ${rescolour}% 6s${NC} | % 10s | % 7s | %8s |\n" \
+     "${testname}" "${expected}" "${res}" "${explored}" "${blocked}" "${time}s"
+
+}
+
+run_single_test() {
+
+  testname=$(basename ${test} .cpp)
+  expected="${expected_results[${testname}]}"
+
+  if [ ${debug_mode} == 1 ]
+  then
+
+    output=`${GenMC} -disable-race-detection --tso --persevere --dump-error-graph=${GRAPHS}/${testname}.dot \
+      --print-error-trace -- ${FLUSHFLAG} ${test} 2>&1`
+
+    print_single_result
+
+    if test -f "${GRAPHS}/${testname}.dot"; then
+      dot -Tpng ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.png
+    fi
+
+  else
+
+    output=`${GenMC} -disable-race-detection --tso --persevere -- ${FLUSHFLAG} ${test} 2>&1`
+
+    print_single_result
+
+  fi
+
+  echo "${output}" &> ${OUT}/${testname}.out
 
 }
 
@@ -97,19 +132,19 @@ print_single_result() {
 # Run litmus tests
 #
 
-header="*                        Running litmus tests                        *"
+header="litmus"
 print_header
 
-for lit in ${LITMUS}/*.cpp
+outfile=$OUT/litmus.tex
+truncate -s 0 ${outfile}
+
+for test in ${LITMUS}/*.cpp
 do
 
-  test=$(basename ${lit} .cpp)
+  run_single_test
 
-  output=`${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${LITMUS}/${test}.cpp 2>&1`
+  echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
 
-  print_single_result
-  ${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${LITMUS}/${test}.cpp > \
-    ${OUT}/${test}.out
 done
 printline
 
@@ -117,17 +152,40 @@ printline
 # Run NVTraverse tests
 #
 
-header="*                      Running NVTraverse tests                      *"
+header="NVTraverse"
 print_header
 
-for ds in List Skiplist
+for ds in List #Skiplist
 do
 
-  test=${ds}
+  outfile=$OUT/nvtraverse.tex
+  truncate -s 0 ${outfile}
 
-  output=`${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${NVTRAVERSE}/${ds}/run${ds}.cpp 2>&1`
+  for test in ${NVTRAVERSE}/${ds}/tests/*.cpp
+  do
 
-  ${GenMC} -disable-race-detection --tso --persevere -- -DPWB_IS_CLFLUSH ${NVTRAVERSE}/${ds}/run${ds}.cpp >\
-   ${OUT}/pm${ds}.out
+    run_single_test
+
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
+
+  done
 
 done
+printline
+
+#
+# Run PersistentQueue tests
+#
+
+header="PersistentQueue"
+print_header
+
+for test in ${PERSISTENT_QUEUE}/*.cpp
+do
+
+  run_single_test
+
+done
+printline
+
+echo
