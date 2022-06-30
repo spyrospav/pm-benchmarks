@@ -11,7 +11,7 @@ int __thread tid;
 static pthread_t threads[3];
 static int param[3] = {0, 1, 2};
 
-__VERIFIER_persistent_storage(static ListTraverse* list);
+__VERIFIER_persistent_storage(static ListOriginal* list);
 
 void *thread1(void *param)
 {
@@ -51,8 +51,8 @@ void __VERIFIER_recovery_routine(void)
 
 int main() {
 
-  list = (ListTraverse*)__VERIFIER_palloc(sizeof(ListTraverse));
-  new (list) ListTraverse();
+  list = (ListOriginal*)__VERIFIER_palloc(sizeof(ListOriginal));
+  new (list) ListOriginal();
 
   list->insert(0,10);
   list->insert(3,10);

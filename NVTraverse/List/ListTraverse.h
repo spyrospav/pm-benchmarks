@@ -163,8 +163,15 @@ public:
       }
       Node* node = getNewNode();
       node->set(k, item, curr);
+      #ifndef BIMF
       FLUSH(node);
+      #endif
+
+      #ifdef BICF
+      bool res = pred->CAS_next(curr, node);
+      #else
       bool res = pred->CAS_nextF(curr, node);
+      #endif
       if (res) {
         SFENCE();
         return true;
