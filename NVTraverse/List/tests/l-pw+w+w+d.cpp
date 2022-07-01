@@ -62,7 +62,7 @@ int main() {
 
   pthread_create(&threads[0], NULL, thread1, &param[0]);
   pthread_create(&threads[1], NULL, thread2, &param[1]);
-  pthread_create(&threads[2], NULL, thread2, &param[2]);
+  pthread_create(&threads[2], NULL, thread3, &param[2]);
 
   pthread_join(threads[0], NULL);
   pthread_join(threads[1], NULL);
