@@ -4,7 +4,23 @@ This repository contains various benchmarks for Persistent Memory. For the verif
 
 # Installation
 
+Simply run `make`.
+
+# Structure
+
+There are 3 types of benchmarks:
+
+- [Litmus](/litmus) tests
+- [NVTraverse](/NVTraverse) tests
+- [PersistentQueue](/PersistentQueue) tests
+
+The various tests are described in detail in their respective folder.
+
 # Run
+
+To run the benchmarks suite, a **bash** script is provided:
+
+```$ ./pmdriver.sh```
 
 # Resources
 
