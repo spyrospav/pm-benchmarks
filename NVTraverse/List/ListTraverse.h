@@ -192,7 +192,11 @@ public:
         return false;
       }
       else {
+        #ifdef BRCF1
         Node* succ = curr->getNextF();
+        #else
+        Node* succ = curr->getNext();
+        #endif
         Node* succAndMark = mark(succ);
         if (succ == succAndMark) {
             continue;

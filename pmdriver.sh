@@ -36,7 +36,7 @@ mkdir -p ${PMBENCHMARKS}/out
 OUT=${PMBENCHMARKS}/out
 
 debug_mode=0
-run_mode="all"
+run_mode="default"
 
 usage()
 {
@@ -267,9 +267,13 @@ then
   header="NVTraverse List buggy"
   print_header
 
-  test=${NVTRAVERSE}/List/tests/ltr-pw+w+w+d.cpp
+  LTRAVERSE=${NVTRAVERSE}/List/tests/
 
-  run_single_test "imf"
+  for test in ${LTRAVERSE}/ltr-pw+w+w.cpp ${LTRAVERSE}/ltr-pw+w+w+d.cpp
+  do
+    run_single_test "imf"
+    run_single_test "icf"
+  done
 fi
 
 echo

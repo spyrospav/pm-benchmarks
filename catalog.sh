@@ -20,7 +20,9 @@ expected_results=(
   ["l-pw+w+ww"]="unsafe"
   ["l-pw+w+d"]="unsafe"
   ["l-pw+w+w+d"]="unsafe"
+  ["l-pw+d+d"]="unsafe"
   ["liz-ww"]="safe"
+  ["liz-pw+d+d"]="safe"
   ["liz-pw+ww"]="safe"
   ["liz-pw+w+w"]="safe"
   ["liz-pw+w+ww"]="safe"
@@ -32,6 +34,7 @@ expected_results=(
   ["ltr-pw+w+ww"]="safe"
   ["ltr-pw+w+d"]="safe"
   ["ltr-pw+w+w+d"]="safe"
+  ["ltr-pw+d+d"]="safe"
   ["Skiplist0"]="unsafe"
   ["SkiplistIz0"]="safe"
 
