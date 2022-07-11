@@ -17,8 +17,7 @@ extern "C"{
 void __VERIFIER_recovery_routine(void)
 {
 
-  if (y.load(relaxed) == 1)
-    assert(x.load(relaxed) == 1);
+  assert(!(x.load(relaxed) == 0 && y.load(relaxed) == 1));
 
   return;
 

@@ -18,7 +18,8 @@
 #
 # Author: Spyros Pavlatos <spyrospavlatos4@gmail.com>
 
-GenMC=/home/spyros/Desktop/genmc-tool/src/genmc
+# GenMC=/home/spyros/Desktop/genmc-tool/src/genmc
+GenMC=genmc
 PMBENCHMARKS=$(pwd)
 FLUSHFLAG=-DPWB_IS_CLFLUSH
 
@@ -222,10 +223,6 @@ then
   header="NVTraverse"
   print_header
 
-  # test=${NVTRAVERSE}/List/tests/ltr-pw+w+w+d.cpp
-  #
-  # run_single_test "imf"
-
   for ds in List #Skiplist
   do
 
@@ -242,7 +239,6 @@ then
     done
 
   done
-
 
   printline
 
@@ -269,11 +265,20 @@ then
 
   LTRAVERSE=${NVTRAVERSE}/List/tests/
 
-  for test in ${LTRAVERSE}/ltr-pw+w+w.cpp ${LTRAVERSE}/ltr-pw+w+w+d.cpp
+  for test in ${LTRAVERSE}/ltr-pw+w+d.cpp ${LTRAVERSE}/ltr-pw+w+w+d.cpp
   do
     run_single_test "imf"
     run_single_test "icf"
   done
+
+  for test in ${LTRAVERSE}/ltr-pw+d+d.cpp ${LTRAVERSE}/ltr-pw+w+w+d.cpp
+  do
+    run_single_test "rmf"
+    run_single_test "rcf"
+  done
+
+  printline
+
 fi
 
 echo

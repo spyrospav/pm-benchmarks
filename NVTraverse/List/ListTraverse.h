@@ -192,16 +192,20 @@ public:
         return false;
       }
       else {
-        #ifdef BRCF1
-        Node* succ = curr->getNextF();
-        #else
+        #ifdef BRMF
         Node* succ = curr->getNext();
+        #else
+        Node* succ = curr->getNextF();
         #endif
         Node* succAndMark = mark(succ);
         if (succ == succAndMark) {
             continue;
         }
+        #ifdef BRCF
+        snip = curr->CAS_next(succ, succAndMark);
+        #else
         snip = curr->CAS_nextF(succ, succAndMark);
+        #endif
         if (!snip)
           continue;
         if (pred->CAS_nextF(curr, succ)){

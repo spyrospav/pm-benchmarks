@@ -39,6 +39,6 @@ expected_results=(
   ["SkiplistIz0"]="safe"
 
   # PersistentQueue
-  ["MSQueue0"]="unsafe"
-  ["DurableQueue0"]="safe"
+  ["msq-ee"]="unsafe"
+  ["dq-e"]="safe"
 )
