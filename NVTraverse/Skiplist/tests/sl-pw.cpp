@@ -13,7 +13,6 @@ __VERIFIER_persistent_storage(SkiplistOriginal* list);
 void __VERIFIER_recovery_routine(void)
 {
 
-  //assert(0);
   assert(list->contains(1));
 
   return;
@@ -22,7 +21,6 @@ void __VERIFIER_recovery_routine(void)
 
 int main() {
 
-  //return 0;
   list = (SkiplistOriginal*)__VERIFIER_palloc(sizeof(SkiplistOriginal));
   new (list) SkiplistOriginal();
 

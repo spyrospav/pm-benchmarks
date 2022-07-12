@@ -140,6 +140,7 @@ print_single_result() {
   if [ "${actual_res}" == "${expected}" ]
   then
     rescolour=$GREEN
+    # res="✓"
     res="pass"
   else
     rescolour=$RED
@@ -223,7 +224,7 @@ then
   header="NVTraverse"
   print_header
 
-  for ds in List #Skiplist
+  for ds in Skiplist
   do
 
     outfile=$OUT/nvtraverse.tex

@@ -76,15 +76,12 @@ public:
     node->threadID = value;
     FLUSH(node);
     while (true) {
-      NodeWithID* last = tail; //tail.load(relaxed);
-      NodeWithID* next = last->next;//.load(relaxed);
-      if (last == tail/*.load()*/) {
+      NodeWithID* last = tail;
+      NodeWithID* next = last->next;
+      if (last == tail) {
         if (next == nullptr) {
-          // if (last->next.compare_exchange_strong(next, node)) {
           if (CAS(&(last->next), next, node)) {
-            // BARRIER_OPT(&last->next);
             FLUSH(last->next);
-            // tail.compare_exchange_strong(last, node);
             CAS(&tail, last, node);
             FLUSH(tail);
             return true;
@@ -92,8 +89,6 @@ public:
         }
         else {
           FLUSH(last->next);
-          // BARRIER_OPT(&last->next);
-          // tail.compare_exchange_strong(last, next);
           CAS(&tail, last, next);
           FLUSH(tail);
           continue;
@@ -109,57 +104,49 @@ public:
    * value with the threadID - this is what indicates that the node was
    * removed.
    */
-  // int deq(int threadID) {
-  //   int* newRemovedValue = new int(INT_MAX);
-  //   FLUSH(newRemovedValue);
-  //   // BARRIER(newRemovedValue);
-  //   removedValues[threadID * PADDING] = newRemovedValue;
-  //   FLUSH(removedValues[threadID * PADDING]);
-  //   // BARRIER(&removedValues[threadID * PADDING]);
-  //   while (true) {
-  //     NodeWithID* first = head.load(relaxed);
-  //     NodeWithID* last = tail.load(relaxed);
-  //     NodeWithID* next = first->next.load(relaxed);
-  //     if (first == head.load()) {
-  //       if (first == last) {
-  //         if (next == nullptr) {
-  //           *removedValues[threadID * PADDING] = INT_MIN;
-  //           FLUSH(removedValues[threadID * PADDING]);
-  //           // BARRIER(removedValues[threadID * PADDING]);
-  //           return INT_MIN;
-  //         }
-  //         FLUSH(last->next);
-  //         // BARRIER_OPT(&last->next);
-  //         tail.compare_exchange_strong(last, next);
-  //       }
-  //       else {
-  //         int value = next->value;
-  //         // Mark the node as removed by changing the threadID field
-  //         int valid = -1;
-  //         if (next->threadID.compare_exchange_strong(valid, threadID)) {
-  //             // BARRIER(&next->threadID);
-  //             __VERIFIER_clflush(&next->threadID);
-  //             *removedValues[threadID * PADDING] = value;
-  //             // BARRIER_OPT(removedValues[threadID * PADDING]);
-  //             FLUSH(removedValues[threadID * PADDING]);
-  //             head.compare_exchange_strong(first, next); // Update head
-  //             return value;
-  //         }
-  //         else {
-  //           int* address = removedValues[next->threadID * PADDING];
-  //           if (head.load(relaxed) == first){
-  //               // BARRIER(&next->threadID);
-  //               __VERIFIER_clflush(&next->threadID);
-  //               *address = value;
-  //               FLUSH(address);
-  //               // BARRIER_OPT(address);
-  //               head.compare_exchange_strong(first, next);
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
+  int deq(int threadID) {
+    int* newRemovedValue = new int(INT_MAX);
+    FLUSH(newRemovedValue);
+    removedValues[threadID * PADDING] = newRemovedValue;
+    FLUSH(removedValues[threadID * PADDING]);
+    while (true) {
+      NodeWithID* first = head;
+      NodeWithID* last = tail;
+      NodeWithID* next = first->next;
+      if (first == head) {
+        if (first == last) {
+          if (next == nullptr) {
+            *removedValues[threadID * PADDING] = INT_MIN;
+            FLUSH(removedValues[threadID * PADDING]);
+            return INT_MIN;
+          }
+          FLUSH(last->next);
+          CAS(&tail, last, next);
+        }
+        else {
+          int value = next->value;
+          // Mark the node as removed by changing the threadID field
+          int valid = -1;
+          if (CAS(&next->threadID, valid, threadID)) {
+              __VERIFIER_clflush(&next->threadID);
+              *removedValues[threadID * PADDING] = value;
+              FLUSH(removedValues[threadID * PADDING]);
+              CAS(&head, first, next);
+              return value;
+          }
+          else {
+            int* address = removedValues[next->threadID * PADDING];
+            if (head == first){
+                __VERIFIER_clflush(&next->threadID);
+                *address = value;
+                FLUSH(address);
+                CAS(&head, first, next);
+            }
+          }
+        }
+      }
+    }
+  }
 
   bool isEmpty() {
     return (head == tail);
@@ -168,7 +155,7 @@ public:
   int getSize() {
     int size = 0;
     NodeWithID *aux = tail;
-    while (aux != head) {
+    while (aux != head || aux == nullptr) {
       size++;
       aux = aux->next;
     }
@@ -176,10 +163,8 @@ public:
   }
 
   private:
-    // std::atomic<NodeWithID*> head;
     NodeWithID* head;
     int padding[PADDING];
-    // std::atomic<NodeWithID*> tail;
     NodeWithID* tail;
 
 };

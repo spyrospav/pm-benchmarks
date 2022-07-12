@@ -6,7 +6,7 @@
 extern int levelmax;
 
 #define FRASER_MAX_MAX_LEVEL 2
-#define MAXNODES 100
+#define MAXNODES 20
 #define relaxed std::memory_order_relaxed
 
 int get_rand_level(int seed) {
@@ -25,13 +25,13 @@ public:
   int key;
   int val;
   unsigned char toplevel;
-  std::atomic<Node*> next[FRASER_MAX_MAX_LEVEL];
+  Node* next[FRASER_MAX_MAX_LEVEL];
 
   Node() {
     key = INT_MIN;
     val = INT_MIN;
     for (int i = 0; i < levelmax; i++) {
-      next[i].store(nullptr);
+      next[i] = nullptr;
     }
     toplevel = levelmax;
   }
@@ -48,7 +48,7 @@ public:
     toplevel = topl;
     for (int i = 0; i < levelmax; i++)
     {
-      next[i].store(n, relaxed);
+      next[i] = n;
     }
   }
 
@@ -57,21 +57,21 @@ public:
     val = v;
     toplevel = topl;
     for (int i = 0; i < levelmax; i++) {
-      next[i].store(n, relaxed);
+      next[i] = n;
     }
   }
 
   bool CASNext(Node* exp, Node* n, int i) {
-    Node* old = next[i].load(relaxed);
+    Node* old = next[i];
     if (exp != old) {
       return false;
     }
-    bool ret = next[i].compare_exchange_strong(exp, n);
+    bool ret = CAS(&next[i], exp, n);
     return ret;
   }
 
   Node* getNext(int i) {
-    Node* n = next[i].load(relaxed);
+    Node* n = next[i];
     return n;
   }
 };
@@ -86,12 +86,12 @@ public:
  */
 __VERIFIER_persistent_storage(Node* nodes[MAXNODES]);
 
-std::atomic_int node_idx;
+int node_idx;
 
 void allocateNodes()
 {
 
-  node_idx.store(0);
+  node_idx = 0;
   for (int i = 0; i < MAXNODES; i++) {
     nodes[i] = (Node *)__VERIFIER_palloc(sizeof(Node));
     new (nodes[i]) Node();
@@ -101,7 +101,7 @@ void allocateNodes()
 
 Node* getNewNode()
 {
-  return nodes[node_idx.fetch_add(1)];
+  return nodes[node_idx++];
 }
 
 class SkiplistOriginal {
@@ -133,7 +133,7 @@ public:
     int size = 0;
     Node *node;
     /* Here */
-    node = (Node *)(getCleanReference(this->head->getNext(0)));
+    node = (Node *)(getCleanReference(head->getNext(0)));
     while (node->getNext(0) != nullptr) {
       if (!isMarked(node->getNext(0))) {
         size++;

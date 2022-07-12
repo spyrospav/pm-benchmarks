@@ -36,7 +36,7 @@ void *thread2(void *param)
 void __VERIFIER_recovery_routine(void)
 {
 
-  if (done1) assert(!queue->isEmpty());
+  if (done1) assert(queue->getSize() > 1);
 
   return;
 
@@ -50,9 +50,12 @@ int main() {
   done1 = false;
   done2 = false;
 
+  queue->enq(1);
+
   __VERIFIER_pbarrier();
 
   done1 = queue->enq(2);
+
   // done2 = queue->enq(1);
 
   // pthread_create(&threads[0], NULL, thread1, &param[0]);

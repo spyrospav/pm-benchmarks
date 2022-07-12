@@ -2,8 +2,8 @@
 #define MS_QUEUE_H_
 
 #include <atomic>
+#include <new>
 #include <genmc.h>
-#include "Exceptions.h"
 #include "Utilities.h"
 
 #define MAXNODES 10
@@ -23,7 +23,7 @@
  class Node {
    public:
      int value;
-     std::atomic<Node*> next;
+     Node* next;
      Node(int val) : value(val), next(nullptr) {}
      Node() : value(int()), next(nullptr) {}
  };
@@ -38,12 +38,12 @@
   */
  __VERIFIER_persistent_storage(Node* nodes[MAXNODES]);
 
- static std::atomic_int node_idx;
+ static int node_idx;
 
  void allocateNodes()
  {
 
-   node_idx.store(0);
+   node_idx = 0;
    for (int i = 0; i < MAXNODES; i++) {
      nodes[i] = (Node *)__VERIFIER_palloc(sizeof(Node));
      new (nodes[i]) Node(INT_MAX);
@@ -53,7 +53,7 @@
 
  Node* getNewNode()
  {
-   return nodes[node_idx.fetch_add(1)];
+   return nodes[node_idx++];
  }
 
 class MSQueue {
@@ -70,18 +70,21 @@ public:
     Node* node = getNewNode();
     node->value = value;
     while (true) {
-      Node* last = tail.load();
-      Node* next = last->next.load();
-      if (last == tail.load()) {
+      Node* last = tail;
+      Node* next = last->next;
+      if (last == tail) {
         //not necessary but checks again before try
         if (next == nullptr) {
-          if (last->next.compare_exchange_strong(next, node)) {
-            tail.compare_exchange_strong(last, node);
+          if (CAS(&last->next, next, node)) {
+          // if (last->next.compare_exchange_strong(next, node)) {
+            // tail.compare_exchange_strong(last, node);
+            CAS(&tail, last, node);
             return;
           }
         }
         else {
-          tail.compare_exchange_strong(last, next);
+          CAS(&tail, last, next);
+          // tail.compare_exchange_strong(last, next);
         }
       }
     }
@@ -95,19 +98,21 @@ public:
    */
   int deq(){
     while (true) {
-      Node* first = head.load();
-      Node* last = tail.load();
-      Node* next = first->next.load();
-      if (first == head.load()) {
+      Node* first = head;
+      Node* last = tail;
+      Node* next = first->next;
+      if (first == head) {
         if (first == last) {
           if (next == nullptr) {
             return INT_MIN;
           }
-        tail.compare_exchange_strong(last, next);
+          CAS(&tail, last, next);
+          // tail.compare_exchange_strong(last, next);
         }
         else {
           int value = next->value;
-          if (head.compare_exchange_strong(first, next)) {
+          if (CAS(&head, first, next)) {
+          // if (head.compare_exchange_strong(first, next)) {
             return value;
           }
         }
@@ -120,9 +125,9 @@ public:
   }
 
 private:
-  std::atomic<Node*> head;
+  Node* head;
   int padding[PADDING];
-  std::atomic<Node*> tail;
+  Node* tail;
 };
 
 #endif /* MS_QUEUE_H_ */
