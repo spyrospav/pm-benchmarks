@@ -8,82 +8,8 @@
 
 extern int levelmax;
 
-#define FRASER_MAX_MAX_LEVEL 2 /* covers up to 2^64 elements */
-#define MAXNODES 100
+#define MAXNODES 15
 #define relaxed std::memory_order_relaxed
-
-int get_rand_level(int seed) {
-  int level = 1;
-  for (int i = 0; i < levelmax - 1; i++) {
-    if ((rand_r_32((unsigned int *)&seed) % 101) < 50)
-      level++;
-    else
-      break;
-  }
-  return level;
-}
-
-class Node {
-public:
-  int key;
-  int val;
-  unsigned char toplevel;
-  std::atomic<Node*> next[FRASER_MAX_MAX_LEVEL];
-
-  Node() {
-    key = INT_MIN;
-    val = INT_MIN;
-    for (int i = 0; i < levelmax; i++) {
-      next[i].store(nullptr);
-    }
-    toplevel = get_rand_level(1);
-  }
-
-  Node(int k, int v, int topl) {
-    key = k;
-    val = v;
-    toplevel = topl;
-  }
-
-  Node(int k, int v, Node* n, int topl) {
-    key = k;
-    val = v;
-    toplevel = topl;
-    for (int i = 0; i < levelmax; i++)
-    {
-      next[i].store(n, relaxed);
-    }
-  }
-
-  void set(int k, int v, Node* n, int topl) {
-    key = k;
-    val = v;
-    toplevel = topl;
-    for (int i = 0; i < levelmax; i++) {
-      next[i].store(n);
-    }
-    FLUSH(this);
-  }
-
-  bool CASNext(Node* exp, Node* n, int i) {
-    Node* old = next[i].load();
-    if (exp != old) {
-      BARRIER(&next[i]);
-      return false;
-    }
-    bool ret = next[i].compare_exchange_strong(exp, n);
-    BARRIER(&next[i]);
-    return ret;
-  }
-
-  Node* getNext(int i) {
-    Node* n = next[i].load();
-    if (n)
-      BARRIER(&next[i]);
-    return n;
-  }
-
-};
 
 /*
  * All variables that are read during recovery should have been declared
@@ -132,12 +58,12 @@ public:
   int size() {
     int size = 0;
     Node *node;
-    node = (Node *)(getCleanReference(this->head->getNext(0)));
-    while (node->getNext(0) != nullptr) {
-      if (!isMarked(node->getNext(0))) {
+    node = (Node *)(getCleanReference(this->head->getNextF(0)));
+    while (node->getNextF(0) != nullptr) {
+      if (!isMarked(node->getNextF(0))) {
         size++;
       }
-      node = (Node *)(getCleanReference(node->getNext(0)));
+      node = (Node *)(getCleanReference(node->getNextF(0)));
     }
     return size;
   }
@@ -184,8 +110,12 @@ public:
     }
 
     newNode = getNewNode();
+    #ifndef BSMF
+    newNode->setF(key, val, nullptr, get_rand_level(id));
+    #else
     newNode->set(key, val, nullptr, get_rand_level(id));
-
+    #endif
+    
     for (int i = 0; i < newNode->toplevel; i++) {
       newNode->next[i] = succs[i];
       FLUSH(newNode->next[i]);
@@ -193,7 +123,7 @@ public:
 
     /* Node is visible once inserted at lowest level */
     Node *before = (Node *)(getCleanReference(succs[0]));
-    if (!preds[0]->CASNext(before, newNode, 0)) {
+    if (!preds[0]->CASNextF(before, newNode, 0)) {
       // We don't care about GC for now
       // ssmem_free(alloc, newNode);
       goto retry;
@@ -203,11 +133,11 @@ public:
         pred = preds[i];
         succ = succs[i];
         //someone has already removed that node
-        if (isMarked(newNode->getNext(i))) {
+        if (isMarked(newNode->getNextF(i))) {
           SFENCE();
           return true;
         }
-        if (pred->CASNext(succ, newNode, i))
+        if (pred->CASNextF(succ, newNode, i))
           break;
         search(key, preds, succs);
       }
@@ -226,7 +156,7 @@ private:
     left = this->head;
     int num_nodes = 0;
     for (int i = levelmax - 1; i >= 0; i--) {
-      left_next = left->getNext(i);
+      left_next = left->getNextF(i);
 
       if (isMarked(left_next)) {
         goto retry;
@@ -234,10 +164,10 @@ private:
       /* Find unmarked node pair at this level - left and right */
       for (right = left_next;; right = right_next) {
         /* Skip a sequence of marked nodes */
-        right_next = right->getNext(i);
+        right_next = right->getNextF(i);
         while (isMarked(right_next)) {
           right = (Node *)(getCleanReference(right_next));
-          right_next = right->getNext(i);
+          right_next = right->getNextF(i);
           if (i == 0){
             nodes[num_nodes++] = right;
           }
@@ -252,7 +182,7 @@ private:
       bool cas = false;
       /* Ensure left and right nodes are adjacent */
       if (left_next != right) {
-        bool cas = left->CASNext(left_next, right, i);
+        bool cas = left->CASNextF(left_next, right, i);
         if (!cas) {
           goto retry;
         }
@@ -277,16 +207,16 @@ private:
     Node *left, *left_next, *right = nullptr;
     left = this->head;
     for (int i = levelmax - 1; i >= 0; i--) {
-      left_next = (Node *)(getCleanReference(left->getNext(i)));
+      left_next = (Node *)(getCleanReference(left->getNextF(i)));
       right = left_next;
       while (true) {
-        if (!isMarked(right->getNext(i))) {
+        if (!isMarked(right->getNextF(i))) {
           if (right->key >= key) {
             break;
           }
           left = right;
         }
-        right = (Node *)(getCleanReference(right->getNext(i)));
+        right = (Node *)(getCleanReference(right->getNextF(i)));
       }
 
       if (left_list != nullptr) {
@@ -319,22 +249,47 @@ private:
     return (right->key == key);
   }
 
+  /*
   Node* left_search(int key) {
     Node *left = nullptr, *left_prev;
     left_prev = this->head;
     for (int lvl = levelmax - 1; lvl >= 0; lvl--) {
-      left = (Node *)(getCleanReference(left_prev->getNext(lvl)));
-      while (left->key < key || isMarked(left->getNext(lvl))) {
-        if (!isMarked(left->getNext(lvl))) {
+      left = (Node *)(getCleanReference(left_prev->getNextF(lvl)));
+      while (left->key < key || isMarked(left->getNextF(lvl))) {
+        if (!isMarked(left->getNextF(lvl))) {
           left_prev = left;
         }
-        left = (Node *)(getCleanReference(left->getNext(lvl)));
+        left = (Node *)(getCleanReference(left->getNextF(lvl)));
       }
       if (left->key == key) {
         return left;
       }
     }
     return left_prev;
+  }*/
+
+  Node* left_search(int key) {
+    Node *curr = nullptr, *succ = nullptr, *pred = head;
+
+    for (int lvl = levelmax - 1; lvl >= 0; lvl--) {
+      curr = (Node *)(getCleanReference(pred->getNext(lvl)));
+      assert(curr);
+      while (true) {
+        succ = curr->getNext(lvl);
+        if (succ == nullptr) break;
+        while (isMarked(succ)) {
+          curr = (Node *)(getCleanReference(pred->getNext(lvl)));
+          succ = curr->getNext(lvl);
+        }
+        if (curr->key < key) {
+          pred = curr;
+          curr = succ;
+        }
+        else break;
+      }
+    }
+    assert(curr);
+    return curr;
   }
 
   inline bool mark_node_ptrs(Node *n) {
@@ -342,14 +297,14 @@ private:
     Node *n_next;
     for (int i = n->toplevel - 1; i >= 0; i--) {
       do {
-        n_next = n->getNext(i);
+        n_next = n->getNextF(i);
         if (isMarked(n_next)) {
           cas = false;
           break;
         }
         Node *before = (Node *)(getCleanReference(n_next));
         Node *after = (Node *)(getMarkedReference(n_next));
-        cas = n->CASNext(before, after, i);
+        cas = n->CASNextF(before, after, i);
       } while (!cas);
     }
     return (cas); /* if I was the one that marked lvl 0 */

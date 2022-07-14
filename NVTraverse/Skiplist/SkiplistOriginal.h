@@ -6,75 +6,8 @@
 extern int levelmax;
 
 #define FRASER_MAX_MAX_LEVEL 2
-#define MAXNODES 1000
+#define MAXNODES 20
 #define relaxed std::memory_order_relaxed
-
-int get_rand_level(int seed) {
-  int level = 1;
-  for (int i = 0; i < levelmax - 1; i++) {
-    if ((rand_r_32((unsigned int *)&seed) % 101) < 50)
-      level++;
-    else
-      break;
-  }
-  return level;
-}
-
-class Node {
-public:
-  int key;
-  int val;
-  unsigned char toplevel;
-  std::atomic<Node*> next[FRASER_MAX_MAX_LEVEL];
-
-  Node() {
-    key = INT_MIN;
-    val = INT_MIN;
-    for (int i = 0; i < levelmax; i++) {
-      next[i].store(nullptr);
-    }
-    toplevel = get_rand_level(7);
-  }
-
-  Node(int k, int v, int topl) {
-    key = k;
-    val = v;
-    toplevel = topl;
-  }
-
-  Node(int k, int v, Node* n, int topl) {
-    key = k;
-    val = v;
-    toplevel = topl;
-    for (int i = 0; i < levelmax; i++)
-    {
-      next[i].store(n, relaxed);
-    }
-  }
-
-  void set(int k, int v, Node* n, int topl) {
-    key = k;
-    val = v;
-    toplevel = topl;
-    for (int i = 0; i < levelmax; i++) {
-      next[i].store(n, relaxed);
-    }
-  }
-
-  bool CASNext(Node* exp, Node* n, int i) {
-    Node* old = next[i].load(relaxed);
-    if (exp != old) {
-      return false;
-    }
-    bool ret = next[i].compare_exchange_strong(exp, n);
-    return ret;
-  }
-
-  Node* getNext(int i) {
-    Node* n = next[i].load(relaxed);
-    return n;
-  }
-};
 
 /*
  * All variables that are read during recovery should have been declared
@@ -86,12 +19,12 @@ public:
  */
 __VERIFIER_persistent_storage(Node* nodes[MAXNODES]);
 
-static std::atomic_int node_idx;
+int node_idx;
 
 void allocateNodes()
 {
 
-  node_idx.store(0);
+  node_idx = 0;
   for (int i = 0; i < MAXNODES; i++) {
     nodes[i] = (Node *)__VERIFIER_palloc(sizeof(Node));
     new (nodes[i]) Node();
@@ -101,8 +34,7 @@ void allocateNodes()
 
 Node* getNewNode()
 {
-  if (node_idx.load(relaxed) == 0) printf("3\n");
-  return nodes[node_idx.fetch_add(1)];
+  return nodes[node_idx++];
 }
 
 class SkiplistOriginal {
@@ -115,36 +47,15 @@ public:
     max->set(INT_MAX, 0, nullptr, levelmax);
 	  min = getNewNode();
     min->set(INT_MIN, 0, max, levelmax);
-    this->head = min;
+    head = min;
     MFENCE();
-	}
-
-	SkiplistOriginal(int val) {
-    allocateNodes();
-    Node *min, *max;
-    max = getNewNode();
-    max->set(INT_MAX, 0, nullptr, levelmax);
-    min = getNewNode();
-    min->set(INT_MIN, val, max, levelmax);
-    this->head = min;
-    MFENCE();
-	}
-
-	~SkiplistOriginal() {
-    Node *node, *next;
-    node = this->head;
-    while (node != NULL)
-    {
-      next = node->getNext(0);
-      node = next;
-    }
 	}
 
 	int size() {
     int size = 0;
     Node *node;
     /* Here */
-    node = (Node *)(getCleanReference(this->head->getNext(0)));
+    node = (Node *)(getCleanReference(head->getNext(0)));
     while (node->getNext(0) != nullptr) {
       if (!isMarked(node->getNext(0))) {
         size++;
@@ -157,11 +68,11 @@ public:
 
 	int get(int key) {
     Node *left = left_search(key);
-    return left->val;
+    return left->key;
 	}
 
 	bool contains(int key) {
-    return get(key) != 0;
+    return get(key) == key;
 	}
 
 	bool remove(int key) {
@@ -230,7 +141,7 @@ private:
 	bool search(int key, Node **left_list, Node **right_list) {
     Node *left, *left_next, *right = nullptr, *right_next;
   retry:
-  	left = this->head;
+  	left = head;
 		int num_nodes = 0;
   	for (int i = levelmax - 1; i >= 0; i--) {
       left_next = left->getNext(i);
@@ -285,7 +196,7 @@ private:
 
 	bool search_no_cleanup(int key, Node **left_list, Node **right_list) {
     Node *left, *left_next, *right = nullptr;
-    left = this->head;
+    left = head;
     for (int i = levelmax - 1; i >= 0; i--) {
       left_next = (Node *)(getCleanReference(left->getNext(i)));
       right = left_next;
@@ -313,7 +224,7 @@ private:
 
 	bool search_no_cleanup_succs(int key, Node **right_list) {
     Node *left, *left_next, *right = nullptr;
-    left = this->head;
+    left = head;
     for (int i = levelmax - 1; i >= 0; i--) {
       left_next = (Node *)(getCleanReference(left->getNext(i)));
       right = left_next;
@@ -334,22 +245,26 @@ private:
   }
 
 	Node* left_search(int key) {
-    Node *left = nullptr, *left_prev;
-    left_prev = this->head;
+    Node *curr = nullptr, *succ = nullptr, *pred = head;
+
     for (int lvl = levelmax - 1; lvl >= 0; lvl--) {
-      left = (Node *)(getCleanReference(left_prev->getNext(lvl)));
-      while (left->key < key || isMarked(left->getNext(lvl))) {
-        if (!isMarked(left->getNext(lvl))) {
-          left_prev = left;
+      curr = (Node *)(getCleanReference(pred->getNext(lvl)));
+      while (true) {
+        succ = curr->getNext(lvl);
+        if (succ == nullptr) break;
+        while (isMarked(succ)) {
+          curr = (Node *)(getCleanReference(pred->getNext(lvl)));
+          succ = curr->getNext(lvl);
         }
-        left = (Node *)(getCleanReference(left->getNext(lvl)));
-      }
-      if (left->key == key) {
-        return left;
+        if (curr->key < key) {
+          pred = curr;
+          curr = succ;
+        }
+        else break;
       }
     }
-
-    return left_prev;
+    assert(curr);
+    return curr;
 
   }
 

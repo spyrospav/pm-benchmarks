@@ -16,37 +16,103 @@
 
 #define INT_MIN -2147483000
 #define INT_MAX 2147483000
+#define FRASER_MAX_MAX_LEVEL 2 /* covers up to 2^64 elements */
 
 #define CAS __sync_bool_compare_and_swap
+
+extern int levelmax;
 
 extern "C"{
  void __VERIFIER_clflush(void*);
 }
 
-inline void FLUSH(void *p)
-{
-#ifdef PWB_IS_CLFLUSH
-  __VERIFIER_clflush(&p);
-  //asm volatile ("clflush (%0)" :: "r"(p));
-#elif PWB_IS_CLFLUSHOPT
-  asm volatile(".byte 0x66; clflush %0" : "+m" (*(volatile char *)(p)));
-#else
-#error "You must define what PWB is. Choose PWB_IS_CLFLUSH if you don't know what your CPU is capable of"
-#endif
+int get_rand_level(int seed) {
+  int level = 1;
+  for (int i = 0; i < levelmax - 1; i++) {
+    if ((rand_r_32((unsigned int *)&seed) % 101) < 50)
+      level++;
+    else
+      break;
+  }
+  return level;
 }
 
-inline void FLUSH(volatile void *p)
+class Node {
+public:
+  int key;
+  int val;
+  unsigned char toplevel;
+  Node* next[FRASER_MAX_MAX_LEVEL];
+
+  Node() {
+    key = INT_MIN;
+    val = INT_MIN;
+    for (int i = 0; i < levelmax; i++) {
+      next[i] = nullptr;
+    }
+    toplevel = get_rand_level(1);
+  }
+
+  Node(int k, int v, int topl) {
+    key = k;
+    val = v;
+    toplevel = topl;
+  }
+
+  Node(int k, int v, Node* n, int topl) {
+    key = k;
+    val = v;
+    toplevel = topl;
+    for (int i = 0; i < levelmax; i++)
+    {
+      next[i] = n;
+    }
+  }
+
+  void setF(int k, int v, Node* n, int topl);
+
+  void set(int k, int v, Node* n, int topl) {
+    key = k;
+    val = v;
+    toplevel = topl;
+    for (int i = 0; i < levelmax; i++) {
+      next[i] = n;
+    }
+    // FLUSH(this);
+  }
+
+  bool CASNextF(Node* exp, Node* n, int i);
+
+  bool CASNext(Node* exp, Node* n, int i) {
+    Node* old = next[i];
+    if (exp != old) {
+      // BARRIER(&next[i]);
+      return false;
+    }
+    bool ret = CAS(&next[i], exp, n);
+    return ret;
+  }
+
+  Node* getNextF(int i);
+
+  Node* getNext(int i) {
+    return next[i];
+  }
+
+};
+
+
+void FLUSH(Node *p)
 {
-#ifdef PWB_IS_CLFLUSH
-  __VERIFIER_clflush(&p);
-  // asm volatile ("clflush (%0)" :: "r"(p));
-#elif PWB_IS_CLFLUSHOPT
-  // __VERIFIER_clflushopt(p);
-  asm volatile(".byte 0x66; clflush %0" : "+m" (*(volatile char *)(p)));
-#else
-#error "You must define what PWB is. Choose PWB_IS_CLFLUSH if you don't know what your CPU is capable of"
-#endif
+  __VERIFIER_clflush(&(p->key));
+  __VERIFIER_clflush(&(p->val));
+  __VERIFIER_clflush(&(p->toplevel));
+  for (int i = 0; i < levelmax; i++) {
+    __VERIFIER_clflush(&(p->next[i]));
+  }
+
 }
+
 
 inline void MFENCE()
 {
@@ -106,14 +172,43 @@ int floor_log_2(unsigned int n)
 
 }
 
-void BARRIER(void* p){
+void BARRIER(Node* p){
 	FLUSH(p);
 	MFENCE();
 }
 
-void BARRIER(volatile void* p){
-	FLUSH(p);
-	MFENCE();
+void BARRIER(void *p) {
+  __VERIFIER_clflush(&p);
+  MFENCE();
+}
+
+void Node::setF(int k, int v, Node* n, int topl) {
+  key = k;
+  val = v;
+  toplevel = topl;
+  for (int i = 0; i < levelmax; i++) {
+    next[i] = n;
+  }
+  FLUSH(this);
+}
+
+bool Node::CASNextF(Node* exp, Node* n, int i) {
+  Node* old = next[i];
+  if (exp != old) {
+    BARRIER(&next[i]);
+    return false;
+  }
+  // bool ret = next[i].compare_exchange_strong(exp, n);
+  bool ret = CAS(&next[i], exp, n);
+  BARRIER(&next[i]);
+  return ret;
+}
+
+Node* Node::getNextF(int i) {
+  Node* n = next[i];
+  if (n)
+    BARRIER(&next[i]);
+  return n;
 }
 
 /*
