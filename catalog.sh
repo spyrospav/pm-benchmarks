@@ -35,8 +35,11 @@ expected_results=(
   ["ltr-pw+w+d"]="safe"
   ["ltr-pw+w+w+d"]="safe"
   ["ltr-pw+d+d"]="safe"
-  ["sl-pw"]="unsafe"
+  ["sl-pw+w"]="unsafe"
+  ["sl-pw+w+w"]="unsafe"
+  ["sl-pw+w+w+d"]="unsafe"
   ["sliz-ww"]="safe"
+  ["sliz-pw+w+w"]="safe"
 
   # PersistentQueue
   ["msq-ee"]="unsafe"

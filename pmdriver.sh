@@ -180,7 +180,7 @@ run_single_test() {
     print_single_result
 
     if test -f "${GRAPHS}/${testname}.dot"; then
-      dot -Tpng ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.png
+      dot -Tpng ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.png 2> /dev/null
     fi
 
   else
@@ -227,10 +227,10 @@ then
   for ds in Skiplist
   do
 
-    outfile=$OUT/nvtraverse.tex
+    outfile=$OUT/nvtraverse${ds}.tex
     truncate -s 0 ${outfile}
 
-    for test in ${NVTRAVERSE}/${ds}/tests/*.cpp
+    for test in ${NVTRAVERSE}/${ds}/tests/ad.cpp
     do
 
       run_single_test
@@ -261,21 +261,35 @@ fi
 
 if [ $run_missing = 1 ]
 then
-  header="NVTraverse List buggy"
+
+  outfile=$OUT/buggy.tex
+  truncate -s 0 ${outfile}
+
+  header="NVTraverse buggy"
   print_header
 
-  LTRAVERSE=${NVTRAVERSE}/List/tests/
+  LTRAVERSE=${NVTRAVERSE}/List/tests
+  STRAVERSE=${NVTRAVERSE}/Skiplist/tests
 
+  for test in ${STRAVERSE}/sliz-pw+w+w.cpp
+  do
+    run_single_test "smf"
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
+  done
   for test in ${LTRAVERSE}/ltr-pw+w+d.cpp ${LTRAVERSE}/ltr-pw+w+w+d.cpp
   do
     run_single_test "imf"
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
     run_single_test "icf"
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
   done
 
   for test in ${LTRAVERSE}/ltr-pw+d+d.cpp ${LTRAVERSE}/ltr-pw+w+w+d.cpp
   do
     run_single_test "rmf"
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
     run_single_test "rcf"
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
   done
 
   printline
