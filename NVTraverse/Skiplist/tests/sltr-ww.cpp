@@ -4,11 +4,11 @@
 #include <pthread.h>
 #include <assert.h>
 
-#include "../SkiplistIz.h"
+#include "../SkiplistTraverse.h"
 
 __VERIFIER_persistent_storage(int levelmax = floor_log_2(4));
 
-__VERIFIER_persistent_storage(static SkiplistIz* list);
+__VERIFIER_persistent_storage(static SkiplistTraverse* list);
 __VERIFIER_persistent_storage(bool done = false);
 
 void __VERIFIER_recovery_routine(void)
@@ -22,8 +22,8 @@ void __VERIFIER_recovery_routine(void)
 
 int main() {
 
-  list = (SkiplistIz*)__VERIFIER_palloc(sizeof(SkiplistIz));
-  new (list) SkiplistIz();
+  list = (SkiplistTraverse*)__VERIFIER_palloc(sizeof(SkiplistTraverse));
+  new (list) SkiplistTraverse();
 
   list->insert(2, 10, 7);
 
