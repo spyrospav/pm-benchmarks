@@ -39,7 +39,11 @@ expected_results=(
   ["sl-pw+w+w"]="unsafe"
   ["sl-pw+w+w+d"]="unsafe"
   ["sliz-ww"]="safe"
+  ["sliz-pw+d+d"]="safe"
   ["sliz-pw+w+w"]="safe"
+  ["sltr-ww"]="safe"
+  ["sltr-pw+d+d"]="safe"
+  ["sltr-pw+w+w"]="safe"
 
   # PersistentQueue
   ["msq-ee"]="unsafe"

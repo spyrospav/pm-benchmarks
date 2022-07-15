@@ -230,7 +230,7 @@ then
     outfile=$OUT/nvtraverse${ds}.tex
     truncate -s 0 ${outfile}
 
-    for test in ${NVTRAVERSE}/${ds}/tests/ad.cpp
+    for test in ${NVTRAVERSE}/${ds}/tests/sliz-aspw+w+w+d.cpp
     do
 
       run_single_test
@@ -276,15 +276,18 @@ then
     run_single_test "smf"
     echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
   done
-  for test in ${LTRAVERSE}/ltr-pw+w+d.cpp ${LTRAVERSE}/ltr-pw+w+w+d.cpp
+
+  for test in ${LTRAVERSE}/ltr-pw+w+d.cpp #${LTRAVERSE}/ltr-pw+w+w+d.cpp
   do
+    run_single_test "mfk"
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
     run_single_test "imf"
     echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
     run_single_test "icf"
     echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
   done
 
-  for test in ${LTRAVERSE}/ltr-pw+d+d.cpp ${LTRAVERSE}/ltr-pw+w+w+d.cpp
+  for test in ${LTRAVERSE}/ltr-pw+d+d.cpp #${LTRAVERSE}/ltr-pw+w+w+d.cpp
   do
     run_single_test "rmf"
     echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
