@@ -12,7 +12,8 @@ __VERIFIER_persistent_storage(bool done);
 void __VERIFIER_recovery_routine(void)
 {
 
-  if (done) assert(list->contains(0));
+  if (list->contains(3))
+    assert(list->contains(0));
 
   return;
 

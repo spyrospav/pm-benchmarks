@@ -66,10 +66,13 @@ public:
 
 void FLUSH(Node *n)
 {
-  // __VERIFIER_clflush(&n);
+  #ifdef BMFK
+  __VERIFIER_clflush(&n);
+  #else
   __VERIFIER_clflush(&(n->key));
   __VERIFIER_clflush(&(n->value));
   __VERIFIER_clflush(&(n->next));
+  #endif
 }
 
 Node* Node::getNextF() {
