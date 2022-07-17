@@ -4,6 +4,7 @@ expected_results=(
   # Litmus
   ["2W+2W"]="unsafe"
   ["2WRW+WFW"]="unsafe"
+  ["WMW+WFW"]="unsafe"
   ["WFW"]="safe"
   ["WFW+RW"]="safe"
   ["WW"]="unsafe"

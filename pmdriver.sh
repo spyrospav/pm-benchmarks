@@ -224,13 +224,13 @@ then
   header="NVTraverse"
   print_header
 
-  for ds in Skiplist
+  for ds in List #Skiplist
   do
 
     outfile=$OUT/nvtraverse${ds}.tex
     truncate -s 0 ${outfile}
 
-    for test in ${NVTRAVERSE}/${ds}/tests/sliz-aspw+w+w+d.cpp
+    for test in ${NVTRAVERSE}/${ds}/tests/l-*.cpp
     do
 
       run_single_test
