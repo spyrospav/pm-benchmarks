@@ -7,6 +7,7 @@
 
 #define INT_MIN -1
 #define INT_MAX 100
+#define MAX_THREAD 10
 #define CAS __sync_bool_compare_and_swap
 
 inline void MFENCE()
@@ -30,7 +31,7 @@ public:
   int value;
   NodeWithID* next;
   int threadID;
-  NodeWithID(int val) : value(val), next(nullptr), threadID(-1) {}
+  NodeWithID(int val) : value(val), next(nullptr), threadID(10) {}
 };
 
 void FLUSH(NodeWithID* node) {

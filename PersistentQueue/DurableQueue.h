@@ -53,7 +53,7 @@ public:
   // the value of the last node it managed to dequeue. Relevant in case
   // there is a crash after the value was removed and before the value
   // was returned to the caller.
-  int removedValues[MAX_THREADS];
+  int removedValues[MAX_THREADS + 1];
 
   DurableQueue() {
     allocateNodes();
@@ -65,7 +65,7 @@ public:
     head = tail;
     __VERIFIER_clflush(&tail);
     __VERIFIER_clflush(&head);
-    for (int i = 0; i < MAX_THREADS; i++) {
+    for (int i = 0; i < MAX_THREADS + 1; i++) {
       removedValues[i] = INT_MIN;
       __VERIFIER_clflush(&removedValues[i]);
     }
@@ -109,14 +109,15 @@ public:
    */
   int deq(int threadID) {
     int* newRemovedValue = new int(INT_MAX);
-    __VERIFIER_clflush(newRemovedValue);
+    __VERIFIER_clflush(&newRemovedValue);
     removedValues[threadID] = *newRemovedValue;
     __VERIFIER_clflush(&removedValues[threadID]);
+    NodeWithID* first = head;
+    NodeWithID* last = tail;
     while (true) {
-      NodeWithID* first = head;
-      NodeWithID* last = tail;
-      NodeWithID* next = (NodeWithID*)malloc(sizeof(NodeWithID));
-      next = first->next;
+      first = head;
+      last = tail;
+      NodeWithID* next = first->next;
       if (first == head) {
         if (first == last) {
           if (next == nullptr) {
@@ -124,25 +125,25 @@ public:
             __VERIFIER_clflush(&removedValues[threadID]);
             return INT_MIN;
           }
-          FLUSH(last->next);
+          __VERIFIER_clflush(&(last->next));
           CAS(&tail, last, next);
         }
         else {
           int value = next->value;
           // Mark the node as removed by changing the threadID field
           int valid = -1;
-          if (CAS(&next->threadID, valid, threadID)) {
-              __VERIFIER_clflush(&next->threadID);
+          if (CAS(&(next->threadID), 10, threadID)) {
+              __VERIFIER_clflush(&(first->next->threadID));
               removedValues[threadID] = value;
               __VERIFIER_clflush(&removedValues[threadID]);
               CAS(&head, first, next);
               return value;
           }
           else {
-            assert(removedValues[next->threadID]);
+            assert(removedValues[next->threadID] > -1);
             int address = removedValues[next->threadID];
             if (head == first){
-                __VERIFIER_clflush(&next->threadID);
+                __VERIFIER_clflush(&(first->next->threadID));
                 address = value;
                 __VERIFIER_clflush(&address);
                 CAS(&head, first, next);

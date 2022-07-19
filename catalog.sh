@@ -54,4 +54,5 @@ expected_results=(
   ["msq-pe+e+e"]="unsafe"
   ["dq-e"]="safe"
   ["dq-pe+e+e"]="safe"
+  ["dq-pe+d+d"]="safe"
 )
