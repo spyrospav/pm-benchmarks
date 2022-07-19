@@ -62,35 +62,29 @@ public:
   MSQueue() {
     allocateNodes();
     // Node* dummy = new Node(INT_MAX);
-    Node* dummy = getNewNode();
-    dummy->value = INT_MAX;
-    tail = dummy;
-    head = dummy;
+    tail = getNewNode();
+    head = tail;
     MFENCE();
   }
 
   /* Enqueues a node to the queue with the given value. */
   bool enq(int value) {
-    Node* node = new Node(value);
-    node->next = NULL;
-    // Node* node = getNewNode();
+    Node* node = getNewNode();
     node->value = value;
     while (true) {
       Node* last = tail;
       Node* next = last->next;
       if (last == tail) {
-        //not necessary but checks again before try
+        last = tail;
+        next = last->next;
         if (next == NULL) {
           if (CAS(&last->next, next, node)) {
-          // if (last->next.compare_exchange_strong(next, node)) {
-            // tail.compare_exchange_strong(last, node);
             CAS(&tail, last, node);
             return true;
           }
         }
         else {
           CAS(&tail, last, next);
-          // tail.compare_exchange_strong(last, next);
         }
       }
     }

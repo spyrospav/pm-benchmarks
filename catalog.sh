@@ -51,6 +51,7 @@ expected_results=(
 
   # PersistentQueue
   ["msq-e"]="unsafe"
+  ["msq-pe+e+e"]="unsafe"
   ["dq-e"]="safe"
   ["dq-pe+e+e"]="safe"
 )
