@@ -50,7 +50,7 @@ expected_results=(
   ["sltr-pw+w+d"]="safe"
 
   # PersistentQueue
-  ["msq-ee"]="unsafe"
+  ["msq-e"]="unsafe"
   ["dq-e"]="safe"
   ["dq-pe+e+e"]="safe"
 )

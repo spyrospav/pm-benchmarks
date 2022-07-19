@@ -134,7 +134,7 @@ public:
     if (head == tail) return 0;
     assert(head != tail);
     int size = 0;
-    NodeWithID *aux = head;
+    Node *aux = head;
     do{
       aux = aux->next;
       size++;

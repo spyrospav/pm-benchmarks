@@ -87,14 +87,14 @@ public:
           if (CAS(&(last->next), next, node)) {
             __VERIFIER_clflush(&(last->next));
             CAS(&tail, last, node);
-            __VERIFIER_clflush(&tail);
+            // __VERIFIER_clflush(&tail);
             return true;
           }
         }
         else {
           __VERIFIER_clflush(&(last->next));
           CAS(&tail, last, next);
-          __VERIFIER_clflush(&tail);
+          // __VERIFIER_clflush(&tail);
         }
       }
     }
@@ -154,36 +154,24 @@ public:
   }
 
   bool isEmpty() {
-    printf("Check empty!\n");
-    printf("%p\n", head);
-    printf("%p\n", tail);
     return (head == tail);
   }
 
   int getSize() {
-    if (head == tail) return 0;
-    assert(head != tail);
     int size = 0;
     NodeWithID *aux = head;
     do{
       aux = aux->next;
       size++;
     } while(aux->next);
-
-    tail = aux;
     return size;
   }
 
   void runRecovery() {
     NodeWithID *aux = head;
-    // printf("here\n");
-    // printf("%p\n", aux);
-    // printf("%p\n", tail);
-    // printf("asssss\n");
-    do {
-      printf("%p\n", aux);
+    do{
       aux = aux->next;
-    } while (aux->next != NULL);
+    } while(aux->next);
     tail = aux;
     return;
   }

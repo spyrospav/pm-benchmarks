@@ -230,7 +230,7 @@ then
     outfile=$OUT/nvtraverse${ds}.tex
     truncate -s 0 ${outfile}
 
-    for test in ${NVTRAVERSE}/${ds}/tests/l-*.cpp
+    for test in ${NVTRAVERSE}/${ds}/tests/liz-*.cpp
     do
 
       run_single_test
@@ -271,15 +271,15 @@ then
   LTRAVERSE=${NVTRAVERSE}/List/tests
   STRAVERSE=${NVTRAVERSE}/Skiplist/tests
 
-  for test in ${STRAVERSE}/sliz-pw+w+w.cpp
-  do
-    run_single_test "smf"
-    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
-  done
+  # for test in ${STRAVERSE}/sliz-pw+w+w.cpp
+  # do
+  #   run_single_test "smf"
+  #   echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
+  # done
 
-  for test in ${LTRAVERSE}/ltr-pw+w+d.cpp #${LTRAVERSE}/ltr-pw+w+w+d.cpp
+  for test in ${LTRAVERSE}/ltr-pw+w+w.cpp #${LTRAVERSE}/ltr-pw+w+w+d.cpp
   do
-    run_single_test "mfk"
+    run_single_test "mfn"
     echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
     run_single_test "imf"
     echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
