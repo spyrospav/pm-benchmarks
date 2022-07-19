@@ -5,11 +5,14 @@
 #include <genmc.h>
 #include <atomic>
 
-#define INT_MIN -2147483000
-#define INT_MAX 2147483000
-#define PADDING 512
+#define INT_MIN -1
+#define INT_MAX 100
 #define CAS __sync_bool_compare_and_swap
-#define MFENCE __sync_synchronize
+
+inline void MFENCE()
+{
+  __sync_synchronize();
+}
 
 extern "C"{
  void __VERIFIER_clflush(void*);
@@ -28,7 +31,6 @@ public:
   NodeWithID* next;
   int threadID;
   NodeWithID(int val) : value(val), next(nullptr), threadID(-1) {}
-  NodeWithID() : value(INT_MIN), next(nullptr), threadID(-1) {}
 };
 
 void FLUSH(NodeWithID* node) {
@@ -38,10 +40,9 @@ void FLUSH(NodeWithID* node) {
   __VERIFIER_clflush(&(node->threadID));
 }
 
-void FLUSH(void *p) {
-  __VERIFIER_clflush(&p);
-  // asm volatile ("clflush (%0)" :: "r"(p));
-}
+// void FLUSH(void *p) {
+//   __VERIFIER_clflush(&p);
+// }
 
 void SFENCE() {
     // asm volatile ("sfence" ::: "memory");

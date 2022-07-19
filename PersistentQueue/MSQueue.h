@@ -61,25 +61,31 @@ public:
 
   MSQueue() {
     allocateNodes();
-    head = tail = getNewNode();
+    // Node* dummy = new Node(INT_MAX);
+    Node* dummy = getNewNode();
+    dummy->value = INT_MAX;
+    tail = dummy;
+    head = dummy;
+    MFENCE();
   }
 
   /* Enqueues a node to the queue with the given value. */
-  void enq(int value) {
-    // Node* node = new Node(value);
-    Node* node = getNewNode();
+  bool enq(int value) {
+    Node* node = new Node(value);
+    node->next = NULL;
+    // Node* node = getNewNode();
     node->value = value;
     while (true) {
       Node* last = tail;
       Node* next = last->next;
       if (last == tail) {
         //not necessary but checks again before try
-        if (next == nullptr) {
+        if (next == NULL) {
           if (CAS(&last->next, next, node)) {
           // if (last->next.compare_exchange_strong(next, node)) {
             // tail.compare_exchange_strong(last, node);
             CAS(&tail, last, node);
-            return;
+            return true;
           }
         }
         else {
@@ -124,9 +130,22 @@ public:
     return (head == tail);
   }
 
+  int getSize() {
+    if (head == tail) return 0;
+    assert(head != tail);
+    int size = 0;
+    NodeWithID *aux = head;
+    do{
+      aux = aux->next;
+      size++;
+    } while(aux->next);
+
+    tail = aux;
+    return size;
+  }
+
 private:
   Node* head;
-  int padding[PADDING];
   Node* tail;
 };
 

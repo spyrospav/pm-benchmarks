@@ -1,14 +1,13 @@
-
 #ifndef DURABLE_QUEUE_H_
 #define DURABLE_QUEUE_H_
 
-// #include <atomic>
-#include <new>
+#include "Utilities.h"
 #include <assert.h>
 #include <genmc.h>
-#include "Utilities.h"
+#include <atomic>
+#include <new>
 
-#define MAXNODES 10
+#define MAXNODES 5
 #define MAX_THREADS 3
 
 #define relaxed std::memory_order_relaxed
@@ -23,12 +22,12 @@
  */
 __VERIFIER_persistent_storage(NodeWithID* nodes[MAXNODES]);
 
-static int node_idx;
+std::atomic<int> node_idx;
 
 void allocateNodes()
 {
 
-  node_idx = 0;
+  node_idx.store(0);
   for (int i = 0; i < MAXNODES; i++) {
     nodes[i] = (NodeWithID *)__VERIFIER_palloc(sizeof(NodeWithID));
     new (nodes[i]) NodeWithID(INT_MAX);
@@ -39,7 +38,7 @@ void allocateNodes()
 
 NodeWithID* getNewNode()
 {
-  return nodes[node_idx++];
+  return nodes[node_idx.fetch_add(1)];
 }
 
 /* This queue preserves the durable linearizability definitions. This version
@@ -54,44 +53,48 @@ public:
   // the value of the last node it managed to dequeue. Relevant in case
   // there is a crash after the value was removed and before the value
   // was returned to the caller.
-  int* removedValues[MAX_THREADS * PADDING];
+  int removedValues[MAX_THREADS];
 
   DurableQueue() {
     allocateNodes();
+    // NodeWithID* dummy = getNewNode();
+    // NodeWithID* dummy = getNewNode();
+    // FLUSH(dummy);
     tail = getNewNode();
-    head = tail;
     FLUSH(tail);
-    FLUSH(head);
-    // BARRIER(&tail);
-    // BARRIER(&head);
+    head = tail;
+    __VERIFIER_clflush(&tail);
+    __VERIFIER_clflush(&head);
     for (int i = 0; i < MAX_THREADS; i++) {
-      removedValues[i * PADDING] = nullptr;
-      FLUSH(removedValues[i * PADDING]);
+      removedValues[i] = INT_MIN;
+      __VERIFIER_clflush(&removedValues[i]);
     }
+    MFENCE();
   }
 
   /* Enqueues a node to the queue with the given value. */
   bool enq(int value) {
     NodeWithID* node = getNewNode();
-    node->threadID = value;
+    node->value = value;
     FLUSH(node);
+    NodeWithID* last = tail;
+    NodeWithID* next = last->next;
     while (true) {
-      NodeWithID* last = tail;
-      NodeWithID* next = last->next;
+      last = tail;
+      next = last->next;
       if (last == tail) {
         if (next == nullptr) {
           if (CAS(&(last->next), next, node)) {
-            FLUSH(last->next);
+            __VERIFIER_clflush(&(last->next));
             CAS(&tail, last, node);
-            FLUSH(tail);
+            __VERIFIER_clflush(&tail);
             return true;
           }
         }
         else {
-          FLUSH(last->next);
+          __VERIFIER_clflush(&(last->next));
           CAS(&tail, last, next);
-          FLUSH(tail);
-          continue;
+          __VERIFIER_clflush(&tail);
         }
       }
     }
@@ -106,18 +109,19 @@ public:
    */
   int deq(int threadID) {
     int* newRemovedValue = new int(INT_MAX);
-    FLUSH(newRemovedValue);
-    removedValues[threadID * PADDING] = newRemovedValue;
-    FLUSH(removedValues[threadID * PADDING]);
+    __VERIFIER_clflush(newRemovedValue);
+    removedValues[threadID] = *newRemovedValue;
+    __VERIFIER_clflush(&removedValues[threadID]);
     while (true) {
       NodeWithID* first = head;
       NodeWithID* last = tail;
-      NodeWithID* next = first->next;
+      NodeWithID* next = (NodeWithID*)malloc(sizeof(NodeWithID));
+      next = first->next;
       if (first == head) {
         if (first == last) {
           if (next == nullptr) {
-            *removedValues[threadID * PADDING] = INT_MIN;
-            FLUSH(removedValues[threadID * PADDING]);
+            removedValues[threadID] = INT_MIN;
+            __VERIFIER_clflush(&removedValues[threadID]);
             return INT_MIN;
           }
           FLUSH(last->next);
@@ -129,17 +133,18 @@ public:
           int valid = -1;
           if (CAS(&next->threadID, valid, threadID)) {
               __VERIFIER_clflush(&next->threadID);
-              *removedValues[threadID * PADDING] = value;
-              FLUSH(removedValues[threadID * PADDING]);
+              removedValues[threadID] = value;
+              __VERIFIER_clflush(&removedValues[threadID]);
               CAS(&head, first, next);
               return value;
           }
           else {
-            int* address = removedValues[next->threadID * PADDING];
+            assert(removedValues[next->threadID]);
+            int address = removedValues[next->threadID];
             if (head == first){
                 __VERIFIER_clflush(&next->threadID);
-                *address = value;
-                FLUSH(address);
+                address = value;
+                __VERIFIER_clflush(&address);
                 CAS(&head, first, next);
             }
           }
@@ -149,23 +154,43 @@ public:
   }
 
   bool isEmpty() {
+    printf("Check empty!\n");
+    printf("%p\n", head);
+    printf("%p\n", tail);
     return (head == tail);
   }
 
   int getSize() {
+    if (head == tail) return 0;
+    assert(head != tail);
     int size = 0;
-    NodeWithID *aux = tail;
-    while (aux != head || aux == nullptr) {
-      size++;
+    NodeWithID *aux = head;
+    do{
       aux = aux->next;
-    }
+      size++;
+    } while(aux->next);
+
+    tail = aux;
     return size;
   }
 
-  private:
-    NodeWithID* head;
-    int padding[PADDING];
-    NodeWithID* tail;
+  void runRecovery() {
+    NodeWithID *aux = head;
+    // printf("here\n");
+    // printf("%p\n", aux);
+    // printf("%p\n", tail);
+    // printf("asssss\n");
+    do {
+      printf("%p\n", aux);
+      aux = aux->next;
+    } while (aux->next != NULL);
+    tail = aux;
+    return;
+  }
+
+private:
+  NodeWithID* head;
+  NodeWithID* tail;
 
 };
 

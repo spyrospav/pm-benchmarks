@@ -36,10 +36,9 @@ void *thread2(void *param)
 
 void __VERIFIER_recovery_routine(void)
 {
-  printf("Recovery\n");
-  // queue->runRecovery();
-  if (done1)
-    assert(!queue->isEmpty());
+
+  __VERIFIER_assume(done1 && done2);
+  assert(queue->getSize() == 2);
 
   return;
 
@@ -47,21 +46,19 @@ void __VERIFIER_recovery_routine(void)
 
 int main() {
 
-  printf("New execution\n");
   queue = (DurableQueue*)__VERIFIER_palloc(sizeof(DurableQueue));
   new (queue) DurableQueue();
 
-  done1 = false;
-
   __VERIFIER_pbarrier();
 
-  done1 = queue->enq(1);
+  pthread_create(&threads[0], NULL, thread1, &param[0]);
+  pthread_create(&threads[1], NULL, thread2, &param[1]);
 
-  // pthread_create(&threads[0], NULL, thread1, &param[0]);
-  // pthread_create(&threads[1], NULL, thread2, &param[1]);
+  pthread_join(threads[0], NULL);
+  pthread_join(threads[1], NULL);
 
-  // pthread_join(threads[0], NULL);
-  // pthread_join(threads[1], NULL);
+  int x = queue->getSize();
+  assert(x == 2);
 
   return 0;
 
