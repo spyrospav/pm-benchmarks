@@ -37,8 +37,8 @@ void __VERIFIER_recovery_routine(void)
 {
 
   assert(list->contains(3));
-  // if (t1) assert(!list->contains(1));
-  // if (t2) assert(!list->contains(2));
+  if (t1) assert(!list->contains(1));
+  if (t2) assert(!list->contains(2));
 
   return;
 

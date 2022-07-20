@@ -120,7 +120,9 @@ public:
           traverseNodes[numNodes++] = leftParent;
           for (int i = 0; i < numNodes; i++) {
               if (traverseNodes[i]) {
+                #ifndef BITF
                 FLUSH(traverseNodes[i]);
+                #endif
               }
           }
           Window* w = new Window(left, right);
@@ -130,7 +132,9 @@ public:
       traverseNodes[numNodes++] = leftParent;
       for (int i = 0; i < numNodes; i++) {
         if (traverseNodes[i]) {
+          #ifndef BITF
           FLUSH(traverseNodes[i]);
+          #endif
         }
       }
       /* 3: Remove one or more marked nodes */
