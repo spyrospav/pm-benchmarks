@@ -53,6 +53,7 @@ expected_results=(
   ["msq-e"]="unsafe"
   ["msq-pe+e+e"]="unsafe"
   ["dq-e"]="safe"
+  ["dq-pe+e+d"]="safe"
   ["dq-pe+e+e"]="safe"
   ["dq-pe+d+d"]="safe"
 )

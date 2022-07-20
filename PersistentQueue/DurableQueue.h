@@ -158,10 +158,14 @@ public:
     return (head == tail);
   }
 
-  int getSize() {
+  int getSize(bool fixHead = false) {
     int size = 0;
     NodeWithID *aux = head;
     do{
+      if (fixHead && aux->threadID != 10) {
+        size = 0;
+        fixHead = false;
+      }
       aux = aux->next;
       size++;
     } while(aux->next);
