@@ -6,13 +6,13 @@
 
 #include "../SkiplistOriginal.h"
 
-static pthread_t threads[2];
-static int param[2] = {0, 1};
+static pthread_t threads[3];
+static int param[3] = {0, 1, 2};
 
 __VERIFIER_persistent_storage(static SkiplistOriginal* list);
 __VERIFIER_persistent_storage(bool res2);
 
-__VERIFIER_persistent_storage(int levelmax = floor_log_2(4));
+__VERIFIER_persistent_storage(int levelmax = floor_log_2(8));
 
 void *thread1(void *param)
 {
@@ -65,9 +65,11 @@ int main() {
 
   pthread_create(&threads[0], NULL, thread1, &param[0]);
   pthread_create(&threads[1], NULL, thread2, &param[1]);
+  pthread_create(&threads[2], NULL, thread3, &param[2]);
 
   pthread_join(threads[0], NULL);
   pthread_join(threads[1], NULL);
+  pthread_join(threads[2], NULL);
 
   return 0;
 

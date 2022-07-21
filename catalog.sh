@@ -37,6 +37,7 @@ expected_results=(
   ["ltr-pw+w+w+d"]="safe"
   ["ltr-pw+d+d"]="safe"
   ["sl-pw+w"]="unsafe"
+  ["sl-pw+d+d"]="unsafe"
   ["sl-pw+w+w"]="unsafe"
   ["sl-pw+w+w+d"]="unsafe"
   ["sl-pw+w+d"]="unsafe"

@@ -5,8 +5,7 @@
 
 extern int levelmax;
 
-#define FRASER_MAX_MAX_LEVEL 2
-#define MAXNODES 20
+#define MAXNODES 25
 #define relaxed std::memory_order_relaxed
 
 /*
@@ -19,12 +18,12 @@ extern int levelmax;
  */
 __VERIFIER_persistent_storage(Node* nodes[MAXNODES]);
 
-int node_idx;
+std::atomic_int node_idx;
 
 void allocateNodes()
 {
 
-  node_idx = 0;
+  node_idx.store(0);
   for (int i = 0; i < MAXNODES; i++) {
     nodes[i] = (Node *)__VERIFIER_palloc(sizeof(Node));
     new (nodes[i]) Node();
@@ -34,7 +33,7 @@ void allocateNodes()
 
 Node* getNewNode()
 {
-  return nodes[node_idx++];
+  return nodes[node_idx.fetch_add(1)];
 }
 
 class SkiplistOriginal {
@@ -66,16 +65,24 @@ public:
     return size;
   }
 
-	int get(int key) {
-    Node *left = left_search(key);
-    return left->key;
+  int get(int key) {
+    Node *succs[FRASER_MAX_MAX_LEVEL], *preds[FRASER_MAX_MAX_LEVEL];
+    bool exists = search_no_cleanup(key, preds, succs);
+    SFENCE();
+    if (exists) {
+      return succs[0]->val;
+    }
+    else {
+      return 0;
+    }
 	}
 
 	bool contains(int key) {
-    return get(key) == key;
+    return get(key) != 0;
 	}
 
 	bool remove(int key) {
+    printf("delete\n");
     Node *succs[FRASER_MAX_MAX_LEVEL];
     bool found = search_no_cleanup_succs(key, succs);
       if (!found) {
@@ -91,6 +98,7 @@ public:
 	}
 
 	bool insert(int key, int val, int id) {
+    printf("insert\n");
     Node *newNode, *pred, *succ;
     Node *succs[FRASER_MAX_MAX_LEVEL], *preds[FRASER_MAX_MAX_LEVEL];
     int i;
@@ -289,4 +297,4 @@ private:
 
   }
 
-};
+} __attribute__((aligned((64))));

@@ -16,7 +16,7 @@
 
 #define INT_MIN -2147483000
 #define INT_MAX 2147483000
-#define FRASER_MAX_MAX_LEVEL 2 /* covers up to 2^64 elements */
+#define FRASER_MAX_MAX_LEVEL 3 /* covers up to 2^64 elements */
 
 #define CAS __sync_bool_compare_and_swap
 
@@ -78,7 +78,6 @@ public:
     for (int i = 0; i < levelmax; i++) {
       next[i] = n;
     }
-    // FLUSH(this);
   }
 
   bool CASNextF(Node* exp, Node* n, int i);
@@ -86,7 +85,6 @@ public:
   bool CASNext(Node* exp, Node* n, int i) {
     Node* old = next[i];
     if (exp != old) {
-      // BARRIER(&next[i]);
       return false;
     }
     bool ret = CAS(&next[i], exp, n);
@@ -116,9 +114,6 @@ void FLUSH(Node *p)
 
 inline void MFENCE()
 {
-  // Which of the following should we use?
-  // NOTE: __sync_synchronize() creates a full memory barrier a.k.a. mfence
-  // std::atomic_thread_fence(std::memory_order_seq_cst);
   __sync_synchronize();
 }
 
@@ -126,18 +121,6 @@ inline void SFENCE()
 {
   // std::atomic_thread_fence(std::memory_order_seq_cst);
   // asm volatile ("sfence" ::: "memory");
-}
-
-inline void FENCE()
-{
-
-#ifdef PWB_IS_CLFLUSH
-  MFENCE();
-#elif PWB_IS_CLFLUSHOPT
-  SFENCE();
-#else
-#error "You must define what PWB is. Choose PWB_IS_CLFLUSH if you don't know what your CPU is capable of"
-#endif
 }
 
 int floor_log_2(unsigned int n)
@@ -177,11 +160,6 @@ void BARRIER(Node* p){
 	MFENCE();
 }
 
-void BARRIER(void *p) {
-  __VERIFIER_clflush(&p);
-  MFENCE();
-}
-
 void Node::setF(int k, int v, Node* n, int topl) {
   key = k;
   val = v;
@@ -195,19 +173,22 @@ void Node::setF(int k, int v, Node* n, int topl) {
 bool Node::CASNextF(Node* exp, Node* n, int i) {
   Node* old = next[i];
   if (exp != old) {
-    BARRIER(&next[i]);
+    __VERIFIER_clflush(&next[i]);
+    MFENCE();
     return false;
   }
-  // bool ret = next[i].compare_exchange_strong(exp, n);
   bool ret = CAS(&next[i], exp, n);
-  BARRIER(&next[i]);
+  __VERIFIER_clflush(&next[i]);
+  MFENCE();
   return ret;
 }
 
 Node* Node::getNextF(int i) {
   Node* n = next[i];
-  if (n)
-    BARRIER(&next[i]);
+  if (n) {
+    __VERIFIER_clflush(&next[i]);
+    MFENCE();
+  }
   return n;
 }
 

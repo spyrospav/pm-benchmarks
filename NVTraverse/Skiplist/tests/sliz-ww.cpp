@@ -6,7 +6,7 @@
 
 #include "../SkiplistIz.h"
 
-__VERIFIER_persistent_storage(int levelmax = floor_log_2(4));
+__VERIFIER_persistent_storage(int levelmax = floor_log_2(8));
 
 __VERIFIER_persistent_storage(static SkiplistIz* list);
 __VERIFIER_persistent_storage(bool done = false);

@@ -9,7 +9,6 @@
 extern int levelmax;
 
 #define MAXNODES 15
-#define relaxed std::memory_order_relaxed
 
 /*
  * All variables that are read during recovery should have been declared
@@ -21,12 +20,12 @@ extern int levelmax;
  */
 __VERIFIER_persistent_storage(Node* nodes[MAXNODES]);
 
-int node_idx;
+std::atomic_int node_idx;
 
 void allocateNodes()
 {
 
-  node_idx = 0;
+  node_idx.store(0);
   for (int i = 0; i < MAXNODES; i++) {
     nodes[i] = (Node *)__VERIFIER_palloc(sizeof(Node));
     new (nodes[i]) Node();
@@ -36,7 +35,7 @@ void allocateNodes()
 
 Node* getNewNode()
 {
-  return nodes[node_idx++];
+  return nodes[node_idx.fetch_add(1)];
 }
 
 class SkiplistIz {
@@ -51,8 +50,9 @@ public:
     min = getNewNode();
     min->set(INT_MIN, 0, max, levelmax);
     BARRIER(min);
-    this->head = min;
-    BARRIER(head);
+    head = min;
+    __VERIFIER_clflush(&head);
+    MFENCE();
   }
 
   int size() {
@@ -77,8 +77,6 @@ public:
   int get(int key) {
     Node *succs[FRASER_MAX_MAX_LEVEL], *preds[FRASER_MAX_MAX_LEVEL];
     bool exists = search_no_cleanup(key, preds, succs);
-    FLUSH(preds[0]);
-    FLUSH(succs[0]);
     SFENCE();
     if (exists) {
       return succs[0]->val;
@@ -142,6 +140,7 @@ public:
       // ssmem_free(alloc, newNode);
       goto retry;
     }
+
     for (int i = 1; i < newNode->toplevel; i++) {
       while (true) {
         pred = preds[i];
@@ -262,25 +261,6 @@ private:
     }
     return (right->key == key);
   }
-
-  /*
-  Node* left_search(int key) {
-    Node *left = nullptr, *left_prev;
-    left_prev = this->head;
-    for (int lvl = levelmax - 1; lvl >= 0; lvl--) {
-      left = (Node *)(getCleanReference(left_prev->getNextF(lvl)));
-      while (left->key < key || isMarked(left->getNextF(lvl))) {
-        if (!isMarked(left->getNextF(lvl))) {
-          left_prev = left;
-        }
-        left = (Node *)(getCleanReference(left->getNextF(lvl)));
-      }
-      if (left->key == key) {
-        return left;
-      }
-    }
-    return left_prev;
-  }*/
 
   Node* left_search(int key) {
     Node *curr = nullptr, *succ = nullptr, *pred = head;

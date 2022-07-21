@@ -12,12 +12,12 @@ static int param[2] = {0, 1};
 __VERIFIER_persistent_storage(static SkiplistOriginal* list);
 __VERIFIER_persistent_storage(bool res2);
 
-__VERIFIER_persistent_storage(int levelmax = floor_log_2(4));
+__VERIFIER_persistent_storage(int levelmax = floor_log_2(8));
 
 void *thread1(void *param)
 {
 
-  list->insert(1, 10, 1);
+  list->insert(1, 10, 10);
 
   return NULL;
 
@@ -26,7 +26,7 @@ void *thread1(void *param)
 void *thread2(void *param)
 {
 
-  res2 = list->insert(2, 10, 1);
+  res2 = list->insert(2, 10, 10);
 
   return NULL;
 
@@ -47,8 +47,8 @@ int main() {
   list = (SkiplistOriginal*)__VERIFIER_palloc(sizeof(SkiplistOriginal));
   new (list) SkiplistOriginal();
 
-  list->insert(0, 10, 1);
-  list->insert(3, 10, 1);
+  list->insert(0, 10, 10);
+  list->insert(3, 10, 10);
 
   res2 = false;
 

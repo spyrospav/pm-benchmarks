@@ -39,7 +39,8 @@ Node* getNewNode()
 
 class SkiplistTraverse {
 public:
-	SkiplistTraverse() {
+
+  SkiplistTraverse() {
     allocateNodes();
     Node *min, *max;
     max = getNewNode();
@@ -49,18 +50,19 @@ public:
     min->set(INT_MIN, 0, max, levelmax);
     BARRIER(min);
     head = min;
-    BARRIER(&head);
-	}
+    __VERIFIER_clflush(&head);
+    MFENCE();
+  }
 
 	int size() {
     int size = 0;
     Node *node;
-    node = static_cast<Node *>(getCleanReference(head->getNext(0)));
+    node = (Node*)(getCleanReference(head->getNext(0)));
     while (node->getNext(0) != nullptr) {
       if (!isMarked(node->getNext(0))) {
         size++;
       }
-      node = static_cast<Node *>(getCleanReference(node->getNext(0)));
+      node = (Node*)(getCleanReference(node->getNext(0)));
     }
     return size;
   }
@@ -68,8 +70,8 @@ public:
 	int get(int key) {
     Node *succs[FRASER_MAX_MAX_LEVEL], *preds[FRASER_MAX_MAX_LEVEL];
     bool exists = search_no_cleanup(key, preds, succs);
-    FLUSH(preds[0]);
-    FLUSH(succs[0]);
+    // FLUSH(preds[0]);
+    // FLUSH(succs[0]);
     SFENCE();
     if (exists) {
       return succs[0]->val;
@@ -122,7 +124,7 @@ public:
 		FLUSH(newNode);
 
   	/* Node is visible once inserted at lowest level */
-  	Node *before = static_cast<Node *>(getCleanReference(succs[0]));
+  	Node *before = (Node*)(getCleanReference(succs[0]));
   	if (!preds[0]->CASNextF(before, newNode, 0)) {
       //ssmem_free(alloc, newNode);
       goto retry;
@@ -169,7 +171,7 @@ private:
         /* Skip a sequence of marked nodes */
         right_next = right->getNext(i);
       	while (isMarked(right_next)) {
-          right = static_cast<Node *>(getCleanReference(right_next));
+          right = (Node*)(getCleanReference(right_next));
           right_next = right->getNext(i);
           if (i == 0) {
   	        traverseNodes[num_nodes++] = right;
@@ -217,7 +219,7 @@ private:
     Node *left, *left_next, *right = nullptr;
     left = head;
     for (int i = levelmax - 1; i >= 0; i--) {
-      left_next = static_cast<Node *>(getCleanReference(left->getNext(i)));
+      left_next = (Node*)(getCleanReference(left->getNext(i)));
       right = left_next;
       while (true) {
         if (!isMarked(right->getNext(i))) {
@@ -226,7 +228,7 @@ private:
           }
           left = right;
         }
-        right = static_cast<Node *>(getCleanReference(right->getNext(i)));
+        right = (Node*)(getCleanReference(right->getNext(i)));
       }
 
       if (left_list != nullptr) {
@@ -243,7 +245,7 @@ private:
     Node *left, *left_next, *right = nullptr;
     left = this->head;
     for (int i = levelmax - 1; i >= 0; i--) {
-      left_next = static_cast<Node *>(getCleanReference(left->getNext(i)));
+      left_next = (Node*)(getCleanReference(left->getNext(i)));
       right = left_next;
       while (true) {
         if (!isMarked(right->getNext(i))) {
@@ -252,7 +254,7 @@ private:
           }
           left = right;
         }
-        right = static_cast<Node *>(getCleanReference(right->getNext(i)));
+        right = (Node*)(getCleanReference(right->getNext(i)));
       }
       right_list[i] = right;
     }
@@ -269,8 +271,8 @@ private:
           cas = false;
           break;
         }
-        Node *before = static_cast<Node *>(getCleanReference(n_next));
-        Node *after = static_cast<Node *>(getMarkedReference(n_next));
+        Node *before = (Node*)(getCleanReference(n_next));
+        Node *after = (Node*)(getMarkedReference(n_next));
         cas = n->CASNextF(before, after, i);
       } while (!cas);
     }
