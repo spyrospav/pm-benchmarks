@@ -66,26 +66,31 @@ public:
 
 void FLUSH(Node *n)
 {
-  // __VERIFIER_clflush(&n);
+  #ifdef BMFN
+  __VERIFIER_clflush(&n);
+  #else
   __VERIFIER_clflush(&(n->key));
   __VERIFIER_clflush(&(n->value));
   __VERIFIER_clflush(&(n->next));
+  #endif
 }
 
 Node* Node::getNextF() {
   Node* n = next;
-  FLUSH(next);
+  __VERIFIER_clflush(&next);
   return n;
 }
 
 bool Node::CAS_nextF(Node* exp, Node* n) {
   Node* old = next;
   if(exp != old) {
-    FLUSH(next);
+    __VERIFIER_clflush(&next);
+    // FLUSH(next);
     return false;
   }
   bool ret = CAS(&next, old, n);
-  FLUSH(next);
+  __VERIFIER_clflush(&next);
+  // FLUSH(next);
   return ret;
 }
 
@@ -123,7 +128,9 @@ void BARRIER(Node* n){
 bool Node::CAS_nextB(Node* exp, Node* n) {
   Node* old = next;
   if (exp != old) {
-    BARRIER(next);
+    // BARRIER(next);
+    __VERIFIER_clflush(&next);
+    MFENCE();
     return false;
   }
   bool ret = CAS(&next, exp, n);
@@ -133,7 +140,9 @@ bool Node::CAS_nextB(Node* exp, Node* n) {
 
 Node* Node::getNextB() {
   Node* n = next;
-  BARRIER(next);
+  // BARRIER(next);
+  __VERIFIER_clflush(&next);
+  MFENCE();
   return n;
 }
 

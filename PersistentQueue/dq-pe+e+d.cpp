@@ -4,19 +4,20 @@
 #include <pthread.h>
 #include <assert.h>
 
-int __thread tid;
-
-#include "../ListTraverse.h"
+#include "DurableQueue.h"
 
 static pthread_t threads[3];
 static int param[3] = {0, 1, 2};
 
-__VERIFIER_persistent_storage(static ListTraverse* list);
+__VERIFIER_persistent_storage(DurableQueue* queue);
+__VERIFIER_persistent_storage(bool done1 = false);
+__VERIFIER_persistent_storage(bool done2 = false);
 
 void *thread1(void *param)
 {
 
-  assert(list->remove(3));
+  queue->enq(2);
+  done1 = true;
 
   return NULL;
 
@@ -25,16 +26,8 @@ void *thread1(void *param)
 void *thread2(void *param)
 {
 
-  list->insert(2, 10);
-
-  return NULL;
-
-}
-
-void *thread3(void *param)
-{
-
-  list->insert(1, 10);
+  queue->deq(2);
+  done2 = true;
 
   return NULL;
 
@@ -43,7 +36,10 @@ void *thread3(void *param)
 void __VERIFIER_recovery_routine(void)
 {
 
-  assert(list->contains(4));
+  __VERIFIER_assume(done1 && done2);
+  assert(queue->removedValues[2] == 1);
+  int x = queue->getSize(true);
+  assert(x == 1);
 
   return;
 
@@ -51,22 +47,20 @@ void __VERIFIER_recovery_routine(void)
 
 int main() {
 
-  list = (ListTraverse*)__VERIFIER_palloc(sizeof(ListTraverse));
-  new (list) ListTraverse();
+  queue = (DurableQueue*)__VERIFIER_palloc(sizeof(DurableQueue));
+  new (queue) DurableQueue();
 
-  list->insert(0,10);
-  list->insert(3,10);
-  list->insert(4,10);
+  queue->enq(1);
 
   __VERIFIER_pbarrier();
 
   pthread_create(&threads[0], NULL, thread1, &param[0]);
   pthread_create(&threads[1], NULL, thread2, &param[1]);
-  pthread_create(&threads[2], NULL, thread3, &param[2]);
 
   pthread_join(threads[0], NULL);
   pthread_join(threads[1], NULL);
-  pthread_join(threads[2], NULL);
+
+  assert(queue->getSize() == 1);
 
   return 0;
 

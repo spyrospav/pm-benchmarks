@@ -18,7 +18,8 @@
 #
 # Author: Spyros Pavlatos <spyrospavlatos4@gmail.com>
 
-GenMC=/home/spyros/Desktop/genmc-tool/src/genmc
+# GenMC=/home/spyros/Desktop/genmc-tool/src/genmc
+GenMC=genmc
 PMBENCHMARKS=$(pwd)
 FLUSHFLAG=-DPWB_IS_CLFLUSH
 
@@ -36,7 +37,7 @@ mkdir -p ${PMBENCHMARKS}/out
 OUT=${PMBENCHMARKS}/out
 
 debug_mode=0
-run_mode="all"
+run_mode="default"
 
 usage()
 {
@@ -139,6 +140,7 @@ print_single_result() {
   if [ "${actual_res}" == "${expected}" ]
   then
     rescolour=$GREEN
+    # res="✓"
     res="pass"
   else
     rescolour=$RED
@@ -178,7 +180,7 @@ run_single_test() {
     print_single_result
 
     if test -f "${GRAPHS}/${testname}.dot"; then
-      dot -Tpng ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.png
+      dot -Tpng ${GRAPHS}/${testname}.dot -o ${GRAPHS}/${testname}.png 2> /dev/null
     fi
 
   else
@@ -222,17 +224,13 @@ then
   header="NVTraverse"
   print_header
 
-  # test=${NVTRAVERSE}/List/tests/ltr-pw+w+w+d.cpp
-  #
-  # run_single_test "imf"
-
   for ds in List #Skiplist
   do
 
-    outfile=$OUT/nvtraverse.tex
+    outfile=$OUT/nvtraverse${ds}.tex
     truncate -s 0 ${outfile}
 
-    for test in ${NVTRAVERSE}/${ds}/tests/*.cpp
+    for test in ${NVTRAVERSE}/${ds}/tests/liz-*.cpp
     do
 
       run_single_test
@@ -242,7 +240,6 @@ then
     done
 
   done
-
 
   printline
 
@@ -264,12 +261,42 @@ fi
 
 if [ $run_missing = 1 ]
 then
-  header="NVTraverse List buggy"
+
+  outfile=$OUT/buggy.tex
+  truncate -s 0 ${outfile}
+
+  header="NVTraverse buggy"
   print_header
 
-  test=${NVTRAVERSE}/List/tests/ltr-pw+w+w+d.cpp
+  LTRAVERSE=${NVTRAVERSE}/List/tests
+  STRAVERSE=${NVTRAVERSE}/Skiplist/tests
 
-  run_single_test "imf"
+  # for test in ${STRAVERSE}/sliz-pw+w+w.cpp
+  # do
+  #   run_single_test "smf"
+  #   echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
+  # done
+
+  for test in ${LTRAVERSE}/ltr-pw+w+w.cpp #${LTRAVERSE}/ltr-pw+w+w+d.cpp
+  do
+    run_single_test "mfn"
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
+    run_single_test "imf"
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
+    run_single_test "icf"
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
+  done
+
+  for test in ${LTRAVERSE}/ltr-pw+d+d.cpp #${LTRAVERSE}/ltr-pw+w+w+d.cpp
+  do
+    run_single_test "rmf"
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
+    run_single_test "rcf"
+    echo "\tabrow{${testname}}{\\${expected}}{${explored}}{${blocked}}{${time}}" >> ${outfile}
+  done
+
+  printline
+
 fi
 
 echo

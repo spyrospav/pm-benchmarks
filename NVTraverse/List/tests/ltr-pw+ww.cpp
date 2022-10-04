@@ -11,8 +11,8 @@ __VERIFIER_persistent_storage(static ListTraverse* list);
 void __VERIFIER_recovery_routine(void)
 {
 
-  if (list->contains(3))
-    assert(list->contains(0));
+  if (list->contains(3, false))
+    assert(list->contains(0, false));
 
   return;
 

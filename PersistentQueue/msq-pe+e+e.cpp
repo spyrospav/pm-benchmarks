@@ -6,17 +6,19 @@
 
 int __thread tid;
 
-#include "../ListIz.h"
+#include "MSQueue.h"
 
-static pthread_t threads[3];
-static int param[3] = {0, 1, 2};
+static pthread_t threads[2];
+static int param[2] = {0, 1};
 
-__VERIFIER_persistent_storage(static ListIz* list);
+__VERIFIER_persistent_storage(MSQueue* queue);
+__VERIFIER_persistent_storage(bool done1);
+__VERIFIER_persistent_storage(bool done2);
 
 void *thread1(void *param)
 {
 
-  list->remove(3);
+  done1 = queue->enq(1);
 
   return NULL;
 
@@ -25,16 +27,8 @@ void *thread1(void *param)
 void *thread2(void *param)
 {
 
-  list->insert(2, 10);
+  done2 = queue->enq(2);
 
-  return NULL;
-
-}
-
-void *thread3(void *param)
-{
-
-  list->insert(1, 10);
 
   return NULL;
 
@@ -43,7 +37,8 @@ void *thread3(void *param)
 void __VERIFIER_recovery_routine(void)
 {
 
-  assert(list->contains(4));
+  __VERIFIER_assume(done1 && done2);
+  assert(queue->getSize() == 2);
 
   return;
 
@@ -51,22 +46,19 @@ void __VERIFIER_recovery_routine(void)
 
 int main() {
 
-  list = (ListIz*)__VERIFIER_palloc(sizeof(ListIz));
-  new (list) ListIz();
-
-  list->insert(0,10);
-  list->insert(3,10);
-  list->insert(4,10);
+  queue = (MSQueue*)__VERIFIER_palloc(sizeof(MSQueue));
+  new (queue) MSQueue();
 
   __VERIFIER_pbarrier();
 
   pthread_create(&threads[0], NULL, thread1, &param[0]);
   pthread_create(&threads[1], NULL, thread2, &param[1]);
-  pthread_create(&threads[2], NULL, thread3, &param[2]);
 
   pthread_join(threads[0], NULL);
   pthread_join(threads[1], NULL);
-  pthread_join(threads[2], NULL);
+
+  int x = queue->getSize();
+  assert(x == 2);
 
   return 0;
 

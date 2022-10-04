@@ -120,7 +120,9 @@ public:
           traverseNodes[numNodes++] = leftParent;
           for (int i = 0; i < numNodes; i++) {
               if (traverseNodes[i]) {
+                #ifndef BITF
                 FLUSH(traverseNodes[i]);
+                #endif
               }
           }
           Window* w = new Window(left, right);
@@ -130,7 +132,9 @@ public:
       traverseNodes[numNodes++] = leftParent;
       for (int i = 0; i < numNodes; i++) {
         if (traverseNodes[i]) {
+          #ifndef BITF
           FLUSH(traverseNodes[i]);
+          #endif
         }
       }
       /* 3: Remove one or more marked nodes */
@@ -176,7 +180,7 @@ public:
         SFENCE();
         return true;
       }
-      free(node);
+      // free(node);
     }
   }
 
@@ -192,12 +196,20 @@ public:
         return false;
       }
       else {
+        #ifdef BRMF
+        Node* succ = curr->getNext();
+        #else
         Node* succ = curr->getNextF();
+        #endif
         Node* succAndMark = mark(succ);
         if (succ == succAndMark) {
             continue;
         }
+        #ifdef BRCF
+        snip = curr->CAS_next(succ, succAndMark);
+        #else
         snip = curr->CAS_nextF(succ, succAndMark);
+        #endif
         if (!snip)
           continue;
         if (pred->CAS_nextF(curr, succ)){
@@ -209,7 +221,7 @@ public:
     }
   }
 
-  bool contains(int key) {
+  bool contains(int key, bool flush=true) {
     Node* pred = head;
     Node* curr = head;
     bool marked = getMark(curr->getNext());
@@ -217,14 +229,16 @@ public:
       pred = curr;
       curr = getAdd(curr->getNext());
       if (!curr) {
-        FLUSH(pred);
+        if (flush) FLUSH(pred);
         SFENCE();
         return false;
       }
       marked = getMark(curr->getNext());
     }
-    FLUSH(pred);
-    FLUSH(curr);
+    if (flush) {
+      FLUSH(pred);
+      FLUSH(curr);
+    }
     // Possibly SFENCE() should be moved here!
     if(curr->key == key && !marked){
       SFENCE();
